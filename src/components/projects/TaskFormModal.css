@@ -1,0 +1,43 @@
+.task-form-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-form-modal__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--status-bloqueado-bg);
+  color: var(--status-bloqueado-text);
+  font-size: 13px;
+}
+
+.task-form-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-form-modal__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.task-form-modal__select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.task-form-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -1,0 +1,119 @@
+.step-project-data {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.step-project-data__section {
+  padding: 20px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.step-project-data__section-title {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.step-project-data__grid {
+  display: grid;
+  gap: 14px;
+}
+
+.step-project-data__grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.step-project-data__grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.step-project-data__codigo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-project-data__codigo-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.step-project-data__input--duplicate .ui-input__field {
+  border-color: var(--status-bloqueado-border);
+}
+
+.step-project-data__field-error {
+  margin: -8px 0 10px;
+  font-size: 12px;
+  color: var(--status-bloqueado-border);
+}
+
+.step-project-data__disciplinas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.step-project-data__disc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.step-project-data__metodologia {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.step-project-data__metodologia select {
+  padding: 8px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.step-project-data__select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.step-project-data__select-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.step-project-data__select-field select {
+  padding: 10px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.step-project-data__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .step-project-data__grid--2,
+  .step-project-data__grid--3 {
+    grid-template-columns: 1fr;
+  }
+}

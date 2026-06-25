@@ -1,0 +1,64 @@
+.move-tarefa-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.move-tarefa-modal__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--status-bloqueado-bg);
+  color: var(--status-bloqueado-text);
+  font-size: 13px;
+}
+
+.move-tarefa-modal__task-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.move-tarefa-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.move-tarefa-modal__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.move-tarefa-modal__select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.move-tarefa-modal__preview {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.move-tarefa-modal__nova-categoria {
+  margin-top: 0;
+}
+
+.move-tarefa-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

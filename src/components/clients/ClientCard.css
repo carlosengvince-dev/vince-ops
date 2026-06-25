@@ -1,0 +1,78 @@
+.client-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.client-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.client-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.client-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--vince-blue-light);
+  color: var(--vince-blue);
+  flex-shrink: 0;
+}
+
+.client-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.client-card__stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.client-card__stat {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--status-pendente-text);
+  background: var(--status-pendente-bg);
+}
+
+.client-card__stat--active {
+  color: var(--proj-ativo-text);
+  background: var(--proj-ativo-bg);
+}
+
+.client-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.client-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

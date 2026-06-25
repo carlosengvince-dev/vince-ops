@@ -1,0 +1,117 @@
+.project-fechamento {
+  margin: 12px 24px 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+}
+
+.project-fechamento__title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.project-fechamento__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.project-fechamento__block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.project-fechamento__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.project-fechamento__horas-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.project-fechamento__disc-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.project-fechamento__total-horas {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.project-fechamento__total-horas strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.project-fechamento__desvio {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.project-fechamento__desvio--early {
+  color: var(--status-concluido-border);
+}
+
+.project-fechamento__desvio--late {
+  color: var(--status-bloqueado-border);
+}
+
+.project-fechamento__desvio--none {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.project-fechamento__stat {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.project-fechamento__membros {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--border);
+}
+
+.project-fechamento__membros-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-fechamento__membro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.project-fechamento__membro-nome {
+  color: var(--text-primary);
+}
+
+.project-fechamento__membro-horas {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

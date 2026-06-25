@@ -1,0 +1,93 @@
+.documentos-padrao__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.documentos-padrao__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+}
+
+.documentos-padrao__row--dragging {
+  box-shadow: var(--shadow-card);
+}
+
+.documentos-padrao__handle {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+}
+
+.documentos-padrao__info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.documentos-padrao__nome {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.documentos-padrao__tipo {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.documentos-padrao__critico {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--status-bloqueado-bg);
+  color: var(--status-bloqueado-text);
+}
+
+.documentos-padrao__icon {
+  display: flex;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.documentos-padrao__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.documentos-padrao__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.documentos-padrao__form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settings-subsection__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}

@@ -1,0 +1,138 @@
+.task-status-dropdown {
+  position: relative;
+  width: 100%;
+  min-width: 160px;
+}
+
+.task-status-dropdown__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.task-status-dropdown__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.task-status-dropdown__trigger--pendente {
+  background: #f0f0f0;
+  color: #6b7280;
+}
+
+.task-status-dropdown__trigger--emelaboracao {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.task-status-dropdown__trigger--emrevisao {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+
+.task-status-dropdown__trigger--bloqueado {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.task-status-dropdown__trigger--concluido {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.task-status-dropdown__trigger--naoaplica {
+  background: #e5e7eb;
+  color: #9ca3af;
+}
+
+.task-status-dropdown__chevron--open {
+  transform: rotate(180deg);
+}
+
+.task-status-dropdown__trigger svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.task-status-dropdown__menu {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.task-status-dropdown__menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-status-dropdown__menu li {
+  margin: 0;
+}
+
+.task-status-dropdown__option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.task-status-dropdown__option:hover {
+  opacity: 0.92;
+}
+
+.task-status-dropdown__option--selected {
+  outline: 2px solid var(--vince-blue);
+  outline-offset: 1px;
+}
+
+.task-status-dropdown__option--pendente {
+  background: #f0f0f0;
+  color: #6b7280;
+}
+
+.task-status-dropdown__option--emelaboracao {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.task-status-dropdown__option--emrevisao {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+
+.task-status-dropdown__option--bloqueado {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.task-status-dropdown__option--concluido {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.task-status-dropdown__option--naoaplica {
+  background: #e5e7eb;
+  color: #9ca3af;
+}

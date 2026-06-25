@@ -1,0 +1,120 @@
+.project-status-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.project-status-dropdown__badge,
+.project-status-dropdown__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+}
+
+.project-status-dropdown__badge {
+  cursor: default;
+}
+
+.project-status-dropdown__trigger {
+  cursor: pointer;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.project-status-dropdown__trigger:hover:not(:disabled) {
+  box-shadow: 0 0 0 2px rgba(11, 78, 162, 0.2);
+}
+
+.project-status-dropdown__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-status-dropdown__trigger svg {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.project-status-dropdown__chevron--open {
+  transform: rotate(180deg);
+}
+
+.project-status-dropdown__badge--ativo,
+.project-status-dropdown__trigger--ativo,
+.project-status-dropdown__option--ativo {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.project-status-dropdown__badge--emrevisao,
+.project-status-dropdown__trigger--emrevisao,
+.project-status-dropdown__option--emrevisao {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.project-status-dropdown__badge--suspenso,
+.project-status-dropdown__trigger--suspenso,
+.project-status-dropdown__option--suspenso {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.project-status-dropdown__badge--concluido,
+.project-status-dropdown__trigger--concluido,
+.project-status-dropdown__option--concluido {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.project-status-dropdown__badge--cancelado,
+.project-status-dropdown__trigger--cancelado,
+.project-status-dropdown__option--cancelado {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.project-status-dropdown__menu {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.project-status-dropdown__menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-status-dropdown__menu li {
+  margin: 0;
+}
+
+.project-status-dropdown__option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.project-status-dropdown__option:hover {
+  opacity: 0.92;
+}
+
+.project-status-dropdown__option--selected {
+  outline: 2px solid var(--vince-blue);
+  outline-offset: 1px;
+}

@@ -1,0 +1,115 @@
+.task-time-records {
+  margin-top: 0;
+  padding: 12px 16px 14px;
+  border-top: 0.5px solid var(--border);
+  background: var(--surface-2);
+}
+
+.task-time-records__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.task-time-records__toggle:hover {
+  color: var(--text-primary);
+}
+
+.task-time-records__toggle-icon {
+  display: flex;
+  color: var(--text-muted);
+}
+
+.task-time-records__body {
+  margin-top: 10px;
+}
+
+.task-time-records__status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.task-time-records__status--error {
+  color: var(--status-bloqueado-text);
+}
+
+.task-time-records__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-time-records__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+}
+
+.task-time-records__origem-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.task-time-records__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-time-records__line {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.task-time-records__desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.task-time-records__delete {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.task-time-records__item:hover .task-time-records__delete,
+.task-time-records__item:focus-within .task-time-records__delete {
+  opacity: 1;
+}
+
+.task-time-records__delete:hover {
+  background: var(--status-bloqueado-bg);
+  color: var(--status-bloqueado-text);
+}

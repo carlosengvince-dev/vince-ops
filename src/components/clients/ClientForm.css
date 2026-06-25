@@ -1,0 +1,17 @@
+.client-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.client-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 560px) {
+  .client-form__row {
+    grid-template-columns: 1fr;
+  }
+}

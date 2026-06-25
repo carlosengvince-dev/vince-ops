@@ -1,0 +1,60 @@
+.create-revisao-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.create-revisao-modal__error {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #dc2626;
+  background: #fef2f2;
+  border-radius: var(--radius-sm);
+}
+
+.create-revisao-modal__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.create-revisao-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-revisao-modal__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.create-revisao-modal__select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.create-revisao-modal__readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.create-revisao-modal__disciplina {
+  align-self: flex-start;
+  cursor: default;
+}
+
+.create-revisao-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

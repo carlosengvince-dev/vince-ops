@@ -1,0 +1,13 @@
+.portal-dropdown {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+}
+
+.portal-dropdown--menu {
+  max-width: 160px;
+}
+
+.portal-dropdown--status {
+  max-width: 180px;
+}

@@ -1,0 +1,48 @@
+.disciplina-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.disciplina-tabs--vertical {
+  flex-direction: column;
+}
+
+.disciplina-tab {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.disciplina-tab:hover:not(.disciplina-tab--selected) {
+  background: #f3f4f6;
+}
+
+.disciplina-tab--selected {
+  font-weight: 600;
+}
+
+.disciplina-tab--selected.disciplina-tab--hid {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.disciplina-tab--selected.disciplina-tab--ppci {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.disciplina-tab--selected.disciplina-tab--spk {
+  background: #d1fae5;
+  color: #16a34a;
+  border-color: #16a34a;
+}

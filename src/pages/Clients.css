@@ -1,0 +1,110 @@
+.clients-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.clients-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.clients-page__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+}
+
+.clients-page__search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.clients-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.clients-page__status,
+.clients-page__empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.clients-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.clients-page__error,
+.clients-page__form-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+  border-radius: var(--radius-md);
+}
+
+.clients-page__detail-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.clients-page__delete-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.clients-page__demo {
+  margin-top: 8px;
+  padding: 20px;
+  background: var(--surface);
+  border: 0.5px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.clients-page__demo-title {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.clients-page__demo-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.clients-page__demo .client-select {
+  max-width: 420px;
+}

@@ -1,0 +1,94 @@
+.my-account__head {
+  margin-bottom: 20px;
+}
+
+.my-account__title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.my-account__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.my-account__card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.my-account__field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.my-account__label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.my-account__readonly {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.my-account__nome-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.my-account__input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.my-account__modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.my-account__modal-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.my-account__error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--status-bloqueado-text);
+}
+
+.my-account__success {
+  margin: 0;
+  font-size: 13px;
+  color: #047857;
+}

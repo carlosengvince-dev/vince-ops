@@ -1,0 +1,76 @@
+.timer-button-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.timer-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.timer-button:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: var(--text-primary);
+}
+
+.timer-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.timer-button--active {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  animation: timer-button-pulse 1.8s ease-in-out infinite;
+}
+
+.timer-button--active:hover:not(:disabled) {
+  background: #059669;
+  color: #ffffff;
+}
+
+@keyframes timer-button-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.12);
+  }
+}
+
+.timer-button__loading {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: timer-button-spin 0.7s linear infinite;
+}
+
+@keyframes timer-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.timer-button__error {
+  font-size: 11px;
+  color: var(--status-bloqueado-border);
+  text-align: right;
+  max-width: 140px;
+  line-height: 1.3;
+}

@@ -1,0 +1,91 @@
+.app-header {
+  background: var(--vince-blue);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.app-header__bar {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 2px 20px;
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 48px;
+}
+
+.app-header__brand-link {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  text-decoration: none;
+}
+
+.app-header__brand-link:hover {
+  text-decoration: none;
+  opacity: 0.92;
+}
+
+.app-header__logo {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+
+.app-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-header__nav-link {
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-header__nav-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+
+.app-header__nav-link--active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .app-header__bar {
+    gap: 12px;
+    padding: 2px 12px;
+  }
+
+  .app-header__nav {
+    gap: 2px;
+  }
+
+  .app-header__nav-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}

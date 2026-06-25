@@ -1,0 +1,104 @@
+.user-avatar {
+  position: relative;
+}
+
+.user-avatar__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.user-avatar__button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.user-avatar__initials {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.user-avatar__menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  padding: 12px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  z-index: 100;
+}
+
+.user-avatar:hover .user-avatar__menu,
+.user-avatar:focus-within .user-avatar__menu {
+  display: block;
+}
+
+.user-avatar__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.user-avatar__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-avatar__role {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.user-avatar__logout {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-avatar__settings {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.user-avatar__settings:hover {
+  background: #e5e7eb;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.user-avatar__logout:hover {
+  background: var(--status-bloqueado-bg);
+  color: var(--status-bloqueado-text);
+}

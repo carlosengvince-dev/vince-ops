@@ -1,0 +1,83 @@
+.dashboard-hoje {
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 0.5px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.dashboard-hoje__title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dashboard-hoje__status {
+  margin: 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.dashboard-hoje__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-hoje__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid #f0f0f0;
+}
+
+.dashboard-hoje__item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dashboard-hoje__nome {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dashboard-hoje__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.dashboard-hoje__codigo {
+  font-weight: 600;
+  color: #0b4ea2;
+}
+
+.dashboard-hoje__sep {
+  color: #d1d5db;
+}
+
+.dashboard-hoje__status-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dashboard-hoje__status-badge--emelaboracao {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.dashboard-hoje__status-badge--emrevisao {
+  background: #8b5cf6;
+  color: #ffffff;
+}

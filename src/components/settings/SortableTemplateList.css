@@ -1,0 +1,134 @@
+.sortable-template-list__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sortable-template-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sortable-template-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+}
+
+.sortable-template-list__item:hover .task-row-menu,
+.sortable-template-list__item .task-row-menu--open {
+  opacity: 1;
+}
+
+.sortable-template-list__item--inactive {
+  opacity: 0.5;
+}
+
+.sortable-template-list__item--dragging {
+  box-shadow: var(--shadow-card);
+}
+
+.sortable-template-list__handle {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.sortable-template-list__handle--spacer {
+  visibility: hidden;
+  cursor: default;
+}
+
+.sortable-template-list__body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sortable-template-list__nome {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.sortable-template-list__badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.sortable-template-list__badge--critico {
+  background: var(--badge-critico-bg);
+  color: var(--badge-critico-text);
+  font-weight: 600;
+}
+
+.sortable-template-list__badge--normal {
+  background: var(--badge-normal-bg);
+  color: var(--badge-normal-text);
+}
+
+.sortable-template-list__badge--origem-interno {
+  background: var(--badge-interno-bg);
+  color: var(--badge-interno-text);
+}
+
+.sortable-template-list__badge--origem-emasa {
+  background: var(--badge-emasa-bg);
+  color: var(--badge-emasa-text);
+  font-weight: 600;
+}
+
+.sortable-template-list__badge--origem-cbmsc {
+  background: var(--badge-cbmsc-bg);
+  color: var(--badge-cbmsc-text);
+  font-weight: 600;
+}
+
+.sortable-template-list__badge--origem-nbr {
+  background: var(--badge-nbr-bg);
+  color: var(--badge-nbr-text);
+  font-weight: 600;
+}
+
+.sortable-template-list__badge--inativa {
+  background: var(--badge-normal-bg);
+  color: var(--text-muted);
+}
+
+.sortable-template-list__inactive-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sortable-template-list__inactive-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.sortable-template-list__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}

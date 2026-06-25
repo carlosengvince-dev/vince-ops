@@ -1,0 +1,19 @@
+.manual-horas-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.manual-horas-button:hover {
+  background: #e5e7eb;
+  color: var(--text-primary);
+}

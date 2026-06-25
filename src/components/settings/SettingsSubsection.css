@@ -1,0 +1,31 @@
+.settings-subsection__head {
+  margin-bottom: 16px;
+}
+
+.settings-subsection__title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-subsection__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.settings-subsection__status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.settings-subsection__error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+}

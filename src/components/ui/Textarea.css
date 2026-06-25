@@ -1,0 +1,35 @@
+.ui-textarea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.ui-textarea__field {
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+.ui-textarea__field:hover {
+  border-color: var(--border-hover);
+}
+
+.ui-textarea__field::placeholder {
+  color: var(--text-muted);
+}
+
+.ui-textarea--error .ui-textarea__field {
+  border-color: var(--status-bloqueado-text);
+}
+
+.ui-textarea__error {
+  font-size: 12px;
+  color: var(--status-bloqueado-text);
+}

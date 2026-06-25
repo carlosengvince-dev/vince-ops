@@ -1,0 +1,205 @@
+.pendencia-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-card, 0 1px 2px rgba(0, 0, 0, 0.04));
+}
+
+.pendencia-card--aberta {
+  border-left-color: #ef4444;
+}
+
+.pendencia-card--respondida {
+  border-left-color: #10b981;
+}
+
+.pendencia-card--cancelada {
+  border-left-color: #9ca3af;
+}
+
+.pendencia-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 18px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.pendencia-card__expand {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.pendencia-card__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pendencia-card__body {
+  padding: 0 18px 18px 46px;
+  border-top: 0.5px solid var(--border);
+}
+
+.pendencia-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pendencia-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pendencia-card__badge--orgao-cbmsc {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.pendencia-card__badge--orgao-emasa {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.pendencia-card__badge--orgao-cliente {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pendencia-card__badge--orgao-outro {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.pendencia-card__badge--tipo-comunique-se,
+.pendencia-card__badge--tipo-exigencia,
+.pendencia-card__badge--tipo-solicitacao,
+.pendencia-card__badge--tipo-duvida {
+  background: #f8fafc;
+  color: #334155;
+  border: 0.5px solid var(--border);
+}
+
+.pendencia-card__badge--status-aberta {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.pendencia-card__badge--status-respondida {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.pendencia-card__badge--status-cancelada {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.pendencia-card__descricao {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.pendencia-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.pendencia-card__prazo--overdue {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.pendencia-card__prazo--soon {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.pendencia-card__prazo--normal {
+  color: #6b7280;
+}
+
+.pendencia-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--border);
+}
+
+.pendencia-card__linked {
+  margin-top: 14px;
+}
+
+.pendencia-card__linked-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.pendencia-card__linked-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pendencia-card__task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 0.5px solid var(--border);
+  background: var(--surface-2);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.pendencia-card__task-chip:hover {
+  background: var(--surface);
+}
+
+.pendencia-card__task-chip-name {
+  color: var(--text-primary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pendencia-card__task-chip-disc {
+  display: inline-flex;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 10px;
+}

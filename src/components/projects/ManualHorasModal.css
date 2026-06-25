@@ -1,0 +1,39 @@
+.manual-horas-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.manual-horas-modal__time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.manual-horas-modal__duration {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.manual-horas-modal__duration strong {
+  color: var(--text-primary);
+}
+
+.manual-horas-modal__alert,
+.manual-horas-modal__error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.manual-horas-modal__alert {
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+}
+
+.manual-horas-modal__error {
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+}

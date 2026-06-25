@@ -1,0 +1,93 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vince-blue);
+  padding: 24px;
+}
+
+.login-page__content {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.login-page__logo {
+  width: 300px;
+  height: auto;
+}
+
+.login-page__form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 24px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.login-page__error {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.login-page__success {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--status-concluido-text);
+  background: var(--status-concluido-bg);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.login-page__forgot {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--vince-blue);
+  text-align: center;
+  cursor: pointer;
+}
+
+.login-page__forgot:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.login-page__forgot:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-page__hint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.45;
+}
+
+.login-page__loading {
+  margin: 0;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.login-page__form .ui-button[type='submit'] {
+  margin-top: 4px;
+}

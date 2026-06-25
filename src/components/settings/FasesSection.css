@@ -1,0 +1,76 @@
+.fases-section__save {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fases-section__save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-subsection__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fases-section__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fases-section__row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: end;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+}
+
+.fases-section__row--dragging {
+  box-shadow: var(--shadow-card);
+}
+
+.fases-section__handle {
+  display: flex;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+}
+
+.fases-section__code {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding-bottom: 10px;
+  min-width: 72px;
+}
+
+.fases-section__default {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-bottom: 10px;
+  white-space: nowrap;
+}
+
+.fases-section__seq-hint {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}

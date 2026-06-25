@@ -1,0 +1,67 @@
+.sortable-string-list__list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sortable-string-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+}
+
+.sortable-string-list__item--dragging {
+  opacity: 0.85;
+  box-shadow: var(--shadow-card);
+}
+
+.sortable-string-list__handle {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: grab;
+}
+
+.sortable-string-list__value {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.sortable-string-list__icon-btn {
+  display: flex;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.sortable-string-list__icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.sortable-string-list__add-row,
+.sortable-string-list__edit-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sortable-string-list__add-row .ui-input,
+.sortable-string-list__edit-row .ui-input {
+  flex: 1;
+  min-width: 200px;
+}

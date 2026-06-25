@@ -1,0 +1,143 @@
+.client-select {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.client-select--disabled {
+  opacity: 0.6;
+}
+
+.client-select__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.client-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.client-select__trigger:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+
+.client-select__trigger:disabled {
+  cursor: not-allowed;
+}
+
+.client-select__placeholder {
+  color: var(--text-muted);
+}
+
+.client-select__value {
+  font-weight: 500;
+}
+
+.client-select__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.client-select__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--border);
+  color: var(--text-muted);
+}
+
+.client-select__search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.client-select__new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 0.5px solid var(--border);
+  background: var(--vince-blue-light);
+  color: var(--vince-blue);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.client-select__new:hover {
+  background: #d9e8f8;
+}
+
+.client-select__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.client-select__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.client-select__option:hover {
+  background: var(--surface-2);
+}
+
+.client-select__option--selected {
+  background: var(--vince-blue-light);
+}
+
+.client-select__option-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.client-select__option-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.client-select__empty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}

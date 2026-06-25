@@ -1,0 +1,166 @@
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+  padding: 12px 12px 0;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: box-shadow 0.15s ease;
+}
+
+.project-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.project-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.project-card__codigo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 8px;
+}
+
+.project-card__numero {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.project-card__status {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.project-card__status--ativo {
+  background: var(--proj-ativo-bg);
+  color: var(--proj-ativo-text);
+}
+
+.project-card__status--emrevisao {
+  background: var(--proj-emrevisao-bg);
+  color: var(--proj-emrevisao-text);
+}
+
+.project-card__status--suspenso {
+  background: var(--proj-suspenso-bg);
+  color: var(--proj-suspenso-text);
+}
+
+.project-card__nome {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.project-card__cliente {
+  margin: -2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.project-card__disciplinas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.project-card__disc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.project-card__disc-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.project-card__disc-pct {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.project-card__bar {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.project-card__bar-fill {
+  height: 100%;
+  background: var(--vince-blue);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.project-card__dots {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.project-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.project-card__dot--done {
+  background: var(--status-concluido-bg);
+}
+
+.project-card__dot--current {
+  background: var(--status-elaboracao-bg);
+}
+
+.project-card__dot--future {
+  background: var(--status-pendente-bg);
+  border: 1px solid var(--status-pendente-border);
+}
+
+.project-card__footer {
+  margin-top: auto;
+  margin-left: -12px;
+  margin-right: -12px;
+}
+
+.project-card__open {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-top: 0.5px solid var(--border);
+  border-radius: 0;
+  background: #f8fafc;
+  color: #0b4ea2;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.project-card__open:hover {
+  background: #eff6ff;
+  text-decoration: none;
+}

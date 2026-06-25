@@ -1,0 +1,133 @@
+.activity-feed {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface-2);
+}
+
+.activity-feed__header {
+  padding: 20px 24px 16px;
+  background: var(--surface);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.activity-feed__title {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activity-feed__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.activity-feed__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+}
+
+.activity-feed__status,
+.activity-feed__error {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.activity-feed__error {
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.activity-feed__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-feed__item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.activity-feed__avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #6b7280;
+}
+
+.activity-feed__avatar--gestor {
+  background: #0b4ea2;
+}
+
+.activity-feed__avatar--projetista {
+  background: #10b981;
+}
+
+.activity-feed__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-feed__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.activity-feed__icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.activity-feed__user {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.activity-feed__time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.activity-feed__desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}

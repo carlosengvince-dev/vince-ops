@@ -1,0 +1,127 @@
+.task-assignee {
+  position: relative;
+}
+
+.task-assignee__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.task-assignee__trigger--readonly {
+  cursor: default;
+}
+
+.task-assignee__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #6b7280;
+}
+
+.task-assignee__avatar--empty {
+  background: #e5e7eb;
+  color: #9ca3af;
+}
+
+.task-assignee__avatar--gestor {
+  background: #0b4ea2;
+}
+
+.task-assignee__avatar--projetista {
+  background: #10b981;
+}
+
+.task-assignee__menu {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.task-assignee__menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-assignee__status {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-assignee__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.task-assignee__option:hover {
+  background: var(--surface-2, #f3f4f6);
+}
+
+.task-assignee__option--selected {
+  background: #eff6ff;
+}
+
+.task-assignee__option--remove {
+  justify-content: center;
+  color: var(--status-bloqueado-border);
+  font-size: 12px;
+  font-weight: 500;
+  border-top: 0.5px solid var(--border);
+  margin-top: 4px;
+  padding-top: 10px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.task-assignee__option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.task-assignee__option-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.task-assignee__option-role {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.task-assignee__option .task-assignee__avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+  flex-shrink: 0;
+}

@@ -1,0 +1,23 @@
+.phase-advance-modal__text {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.phase-advance-modal__list {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.phase-advance-modal__list li {
+  margin-bottom: 4px;
+}
+
+.phase-advance-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

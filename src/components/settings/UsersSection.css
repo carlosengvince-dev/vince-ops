@@ -1,0 +1,194 @@
+.users-section__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.users-section__title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.users-section__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.users-section__status,
+.users-section__error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.users-section__error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--status-bloqueado-text);
+  background: var(--status-bloqueado-bg);
+}
+
+.users-section__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.users-section__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.users-section__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.settings-user-avatar--diretor_executivo {
+  background: #1e3a8a;
+}
+
+.users-section__badge--diretor_executivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #1e3a8a;
+  color: #ffffff;
+}
+
+.settings-user-avatar--gestor {
+  background: #2563eb;
+}
+
+.settings-user-avatar--projetista {
+  background: #059669;
+}
+
+.settings-user-avatar--administrador {
+  background: #7c3aed;
+}
+
+.settings-user-avatar--proprietario {
+  background: #d97706;
+}
+
+.users-section__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.users-section__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.users-section__email {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.users-section__badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.users-section__badge--gestor {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.users-section__badge--projetista {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.users-section__badge--administrador {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.users-section__badge--proprietario {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.users-section__edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.users-section__select {
+  padding: 7px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.users-section__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .users-section__item {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'avatar info'
+      'papel papel'
+      'actions actions';
+  }
+
+  .users-section__avatar {
+    grid-area: avatar;
+  }
+
+  .users-section__info {
+    grid-area: info;
+  }
+
+  .users-section__papel {
+    grid-area: papel;
+  }
+
+  .users-section__actions {
+    grid-area: actions;
+  }
+}

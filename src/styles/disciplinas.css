@@ -1,0 +1,28 @@
+/*
+ * Tom por disciplina — composição com classes locais de layout.
+ * Paleta em :root (--hid-*, --ppci-*, --spk-*); alterar lá para reconfigurar o sistema.
+ */
+
+.disc-tone--hid {
+  --disc-bg: var(--hid-bg);
+  --disc-text: var(--hid-text);
+  --disc-border: var(--hid-border);
+}
+
+.disc-tone--ppci {
+  --disc-bg: var(--ppci-bg);
+  --disc-text: var(--ppci-text);
+  --disc-border: var(--ppci-border);
+}
+
+.disc-tone--spk {
+  --disc-bg: var(--spk-bg);
+  --disc-text: var(--spk-text);
+  --disc-border: var(--spk-border);
+}
+
+.disc-tone--on {
+  background: var(--disc-bg);
+  color: var(--disc-text);
+  border-color: var(--disc-border);
+}
