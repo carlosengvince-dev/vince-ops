@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { projectRowToRpcParams, upsertProjetoRpc } from './projetoRpc'
+import { insertTarefasRpc, type TarefaInsertRow } from './tarefaRpc'
 import { FASES_COM_CHECKLIST, PHASE_SEQUENCES } from './constants'
 import { fetchDefaultDocumentosPadrao } from './documentosProjeto'
 import type {
@@ -152,7 +154,7 @@ export function filterTemplatesForMode(
   })
 }
 
-function templateToTarefaRow(template: TemplateChecklist, projetoId: string) {
+function templateToTarefaRow(template: TemplateChecklist, projetoId: string): TarefaInsertRow {
   return {
     projeto_id: projetoId,
     template_id: template.id,
@@ -166,7 +168,7 @@ function templateToTarefaRow(template: TemplateChecklist, projetoId: string) {
     referencia_normativa: template.referencia_normativa,
     metodologia_minima: template.metodologia_minima,
     ordem: template.ordem,
-    status: 'pendente' as const,
+    status: 'pendente',
   }
 }
 
@@ -192,23 +194,7 @@ async function copyTemplatesToTarefas(
   if (templates.length === 0) return []
 
   const rows = templates.map((t) => templateToTarefaRow(t, projetoId))
-  const { data, error } = await supabase
-    .from('tarefas')
-    .insert(rows)
-    .select('*, profiles!responsavel_id(nome, papel)')
-
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).map((raw) => {
-    const t = raw as Record<string, unknown>
-    const profile = t.profiles as { nome: string; papel: import('../types').Papel } | null
-    const { profiles: _profiles, ...rest } = t
-    return {
-      ...(rest as unknown as Tarefa),
-      responsavel_nome: profile?.nome ?? null,
-      responsavel_papel: profile?.papel ?? null,
-    }
-  })
+  return insertTarefasRpc(rows)
 }
 
 export { copyTemplatesToTarefas }
@@ -235,15 +221,15 @@ export async function createProject(payload: CreateProjectPayload): Promise<Proj
     throw new Error('Código já utilizado em outro projeto')
   }
 
-  const { data: projeto, error: insertError } = await supabase
+  const projetoId = await upsertProjetoRpc(projectRowToRpcParams(projectRowFromForm(payload)))
+
+  const { data: projeto, error: fetchError } = await supabase
     .from('projetos')
-    .insert(projectRowFromForm(payload))
     .select('*')
+    .eq('id', projetoId)
     .single()
 
-  if (insertError) throw new Error(insertError.message)
-
-  const projetoId = (projeto as Projeto).id
+  if (fetchError) throw new Error(fetchError.message)
 
   if (modo === 'novo' || modo === 'em_andamento') {
     await insertDefaultDocumentos(projetoId)

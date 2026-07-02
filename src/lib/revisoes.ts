@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { insertTarefasRpc, type TarefaInsertRow } from './tarefaRpc'
 import type { TemplateChecklist } from '../types'
 import type {
   Disciplina,
@@ -141,7 +142,7 @@ function templateToRevisionTarefaRow(
   template: TemplateChecklist,
   projetoId: string,
   revisaoId: string,
-) {
+): TarefaInsertRow {
   return {
     projeto_id: projetoId,
     revisao_id: revisaoId,
@@ -156,7 +157,7 @@ function templateToRevisionTarefaRow(
     referencia_normativa: template.referencia_normativa,
     metodologia_minima: template.metodologia_minima,
     ordem: template.ordem,
-    status: 'pendente' as const,
+    status: 'pendente',
   }
 }
 
@@ -166,7 +167,7 @@ function customToRevisionTarefaRow(
   projetoId: string,
   revisaoId: string,
   ordem: number,
-) {
+): TarefaInsertRow {
   return {
     projeto_id: projetoId,
     revisao_id: revisaoId,
@@ -176,12 +177,10 @@ function customToRevisionTarefaRow(
     categoria: task.categoria,
     nome: task.nome.trim(),
     descricao: null,
-    criticidade: 'normal' as const,
-    origem: 'interno' as const,
-    referencia_normativa: null,
-    metodologia_minima: null,
+    criticidade: 'normal',
+    origem: 'interno',
     ordem,
-    status: 'pendente' as const,
+    status: 'pendente',
   }
 }
 
@@ -226,13 +225,7 @@ export async function createRevisao(
   let insertedTarefas: Tarefa[] = []
 
   if (tarefaRows.length > 0) {
-    const { data: tarefasData, error: tarefasError } = await supabase
-      .from('tarefas')
-      .insert(tarefaRows)
-      .select('*')
-
-    if (tarefasError) throw new Error(tarefasError.message)
-    insertedTarefas = (tarefasData ?? []) as Tarefa[]
+    insertedTarefas = await insertTarefasRpc(tarefaRows)
   }
 
   if (input.pendenciaId) {

@@ -5,6 +5,8 @@ import {
   filterTemplatesForMode,
   templateAppliesToMetodologia,
 } from './projects'
+import { patchProjetoRpc } from './projetoRpc'
+import { deleteTarefaRpc } from './tarefaRpc'
 import { FASES_COM_CHECKLIST, PHASE_SEQUENCES } from './constants'
 import type { ChecklistSelectionState, ProjectFormData } from '../types/project-create'
 import { EMPTY_PROJECT_FORM } from '../types/project-create'
@@ -130,17 +132,11 @@ export async function addDisciplinaToProjeto(
     input.selectedTemplateIds,
   )
 
-  const { error } = await supabase
-    .from('projetos')
-    .update({
-      disciplinas,
-      metodologia,
-      fases_atuais,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', input.projetoId)
-
-  if (error) throw new Error(error.message)
+  await patchProjetoRpc(input.projetoId, {
+    p_disciplinas: disciplinas,
+    p_metodologia: metodologia,
+    p_fases_atuais: fases_atuais,
+  })
 
   const tarefas = await copyTemplatesToTarefas(input.projetoId, selected)
 
@@ -176,34 +172,24 @@ export async function removeDisciplinaFromProjeto(
   let archivedTaskIds: string[] = []
 
   if (input.archiveTasks) {
-    const now = new Date().toISOString()
     const { data, error } = await supabase
       .from('tarefas')
-      .update({
-        deleted_at: now,
-        updated_at: now,
-        updated_by: input.userId,
-      })
+      .select('id')
       .eq('projeto_id', input.projetoId)
       .eq('disciplina', input.disciplina)
       .is('deleted_at', null)
-      .select('id')
 
     if (error) throw new Error(error.message)
+
     archivedTaskIds = (data ?? []).map((r) => r.id as string)
+    await Promise.all(archivedTaskIds.map((id) => deleteTarefaRpc(id)))
   }
 
-  const { error: projetoError } = await supabase
-    .from('projetos')
-    .update({
-      disciplinas,
-      metodologia,
-      fases_atuais,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', input.projetoId)
-
-  if (projetoError) throw new Error(projetoError.message)
+  await patchProjetoRpc(input.projetoId, {
+    p_disciplinas: disciplinas,
+    p_metodologia: metodologia,
+    p_fases_atuais: fases_atuais,
+  })
 
   return { disciplinas, metodologia, fases_atuais, archivedTaskIds }
 }

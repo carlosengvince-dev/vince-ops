@@ -1,3 +1,10 @@
+import { patchProjetoRpc } from './projetoRpc'
+import {
+  fetchTarefaById,
+  tarefaToRpcParams,
+  upsertTarefaRpc,
+  patchTarefaRpc,
+} from './tarefaRpc'
 import { supabase } from './supabase'
 import type { Disciplina, Fase, FasesAtuais, Tarefa, TarefaStatus } from '../types'
 
@@ -36,45 +43,36 @@ export function groupTarefasByCategoria(tarefas: Tarefa[]): Map<string, Tarefa[]
 export async function updateTarefaResponsavel(
   tarefaId: string,
   responsavelId: string | null,
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('tarefas')
-    .update({
-      responsavel_id: responsavelId,
-      updated_at: new Date().toISOString(),
-      updated_by: userId,
-    })
-    .eq('id', tarefaId)
-
-  if (error) throw new Error(error.message)
+  await patchTarefaRpc(tarefaId, {
+    p_responsavel_id: responsavelId,
+  })
 }
 
 export async function updateTarefaStatus(
   tarefaId: string,
   status: TarefaStatus,
-  userId: string,
+  _userId: string,
   motivoBloqueio?: string | null,
 ): Promise<void> {
-  const payload: Record<string, unknown> = {
-    status,
-    updated_at: new Date().toISOString(),
-    updated_by: userId,
+  const tarefa = await fetchTarefaById(tarefaId)
+  const patch: Partial<ReturnType<typeof tarefaToRpcParams>> = {
+    p_status: status,
   }
 
   if (status === 'concluido') {
-    payload.data_conclusao = new Date().toISOString()
-    payload.motivo_bloqueio = null
+    patch.p_data_conclusao = new Date().toISOString()
+    patch.p_motivo_bloqueio = null
   } else if (status === 'bloqueado') {
-    payload.motivo_bloqueio = motivoBloqueio ?? null
-    payload.data_conclusao = null
+    patch.p_motivo_bloqueio = motivoBloqueio ?? null
+    patch.p_data_conclusao = null
   } else {
-    payload.motivo_bloqueio = null
-    payload.data_conclusao = null
+    patch.p_motivo_bloqueio = null
+    patch.p_data_conclusao = null
   }
 
-  const { error } = await supabase.from('tarefas').update(payload).eq('id', tarefaId)
-  if (error) throw new Error(error.message)
+  await upsertTarefaRpc(tarefaToRpcParams(tarefa, patch))
 }
 
 export async function advanceProjectPhase(
@@ -85,15 +83,7 @@ export async function advanceProjectPhase(
 ): Promise<FasesAtuais> {
   const updated: FasesAtuais = { ...fasesAtuais, [disciplina]: nextFase }
 
-  const { error } = await supabase
-    .from('projetos')
-    .update({
-      fases_atuais: updated,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', projetoId)
-
-  if (error) throw new Error(error.message)
+  await patchProjetoRpc(projetoId, { p_fases_atuais: updated })
   return updated
 }
 

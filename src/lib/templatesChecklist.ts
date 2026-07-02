@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { tarefaToRpcParams, upsertTarefaRpc } from './tarefaRpc'
 import type {
   Criticidade,
   Disciplina,
@@ -238,15 +239,22 @@ export async function renameCategoriaInTarefasAtivas(
 
   const { data, error } = await supabase
     .from('tarefas')
-    .update({ categoria: to, updated_at: new Date().toISOString() })
+    .select('*')
     .in('projeto_id', ids)
     .eq('disciplina', disciplina)
     .eq('categoria', from)
     .is('deleted_at', null)
-    .select('id')
 
   if (error) throw new Error(error.message)
-  return data?.length ?? 0
+
+  const tarefas = (data ?? []) as import('../types').Tarefa[]
+  await Promise.all(
+    tarefas.map((tarefa) =>
+      upsertTarefaRpc(tarefaToRpcParams(tarefa, { p_categoria: to })),
+    ),
+  )
+
+  return tarefas.length
 }
 
 export async function countTemplatesInCategoria(

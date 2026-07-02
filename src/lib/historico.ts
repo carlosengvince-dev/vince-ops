@@ -1,3 +1,4 @@
+import { patchProjetoRpc } from './projetoRpc'
 import { supabase } from './supabase'
 import type { Disciplina, ModoCriacao, ProjetoStatus } from '../types'
 
@@ -99,11 +100,5 @@ export async function fetchHistoricoProjects(): Promise<HistoricoProjetoRow[]> {
 }
 
 export async function reabrirProjetoSuspenso(projetoId: string): Promise<void> {
-  const { error } = await supabase
-    .from('projetos')
-    .update({ status: 'ativo', updated_at: new Date().toISOString() })
-    .eq('id', projetoId)
-    .eq('status', 'suspenso')
-
-  if (error) throw new Error(error.message)
+  await patchProjetoRpc(projetoId, { p_status: 'ativo' })
 }

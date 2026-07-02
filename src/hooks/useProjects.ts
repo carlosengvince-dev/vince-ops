@@ -7,6 +7,7 @@ import {
   type HorasMesPorDisciplina,
 } from '../lib/projectHoras'
 import { createProject } from '../lib/projects'
+import { patchProjetoRpc } from '../lib/projetoRpc'
 import {
   getHorasChartVersion,
   subscribeHorasChartVersion,
@@ -379,12 +380,7 @@ export function useProjects() {
 
   const reactivateProject = useCallback(
     async (id: string): Promise<void> => {
-      const { error: updateError } = await supabase
-        .from('projetos')
-        .update({ status: 'ativo', updated_at: new Date().toISOString() })
-        .eq('id', id)
-
-      if (updateError) throw new Error(updateError.message)
+      await patchProjetoRpc(id, { p_status: 'ativo' })
       await fetchDashboard()
     },
     [fetchDashboard],

@@ -1,4 +1,5 @@
 import { PROJETO_STATUS_LABELS } from './constants'
+import { patchProjetoRpc } from './projetoRpc'
 import { supabase } from './supabase'
 import type { Disciplina, ProjetoStatus, TarefaStatus } from '../types'
 
@@ -217,38 +218,38 @@ export async function updateProjetoStatus(
     dataEntregaPrevista?: string | null
   } = {},
 ): Promise<UpdateProjetoStatusResult> {
-  const patch: Record<string, unknown> = {
-    status: newStatus,
-    updated_at: new Date().toISOString(),
+  const patch: Parameters<typeof patchProjetoRpc>[1] = {
+    p_status: newStatus,
   }
 
   if (newStatus === 'cancelado') {
     const trimmed = opts.justificativa?.trim()
     if (!trimmed) throw new Error('Justificativa é obrigatória para cancelar o projeto.')
-    patch.justificativa_cancelamento = trimmed
+    patch.p_justificativa_cancelamento = trimmed
   }
 
   if (newStatus === 'concluido') {
     const dataConclusao = opts.currentDataConclusaoReal ?? todayIsoDate()
     if (!opts.currentDataConclusaoReal) {
-      patch.data_conclusao_real = dataConclusao
+      patch.p_data_conclusao_real = dataConclusao
     }
 
     const existing = opts.currentSnapshotFechamento
     if (!existing || isSnapshotPlaceholder(existing)) {
-      patch.snapshot_fechamento = await buildProjectSnapshot(
+      patch.p_snapshot_fechamento = (await buildProjectSnapshot(
         projetoId,
         dataConclusao,
         opts.dataEntregaPrevista ?? null,
-      )
+      )) as unknown as Record<string, unknown>
     }
   }
 
+  await patchProjetoRpc(projetoId, patch)
+
   const { data, error } = await supabase
     .from('projetos')
-    .update(patch)
-    .eq('id', projetoId)
     .select('status, data_conclusao_real, justificativa_cancelamento, snapshot_fechamento')
+    .eq('id', projetoId)
     .single()
 
   if (error) throw new Error(error.message)

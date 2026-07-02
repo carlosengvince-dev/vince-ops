@@ -1,10 +1,17 @@
-import { supabase } from './supabase'
+import {
+  deleteTarefaRpc,
+  fetchTarefaById,
+  tarefaInsertRowToRpcParams,
+  tarefaToRpcParams,
+  upsertTarefaRpc,
+  upsertTarefaRpcAndFetch,
+  type TarefaInsertRow,
+} from './tarefaRpc'
 import type {
   Criticidade,
   Disciplina,
   Fase,
   OrigemNormativa,
-  Papel,
   Tarefa,
 } from '../types'
 
@@ -21,16 +28,6 @@ export const CRITICIDADE_OPTIONS: { value: Criticidade; label: string }[] = [
 ]
 
 export const NOVA_CATEGORIA_VALUE = '__nova__'
-
-function mapTarefaRow(raw: Record<string, unknown>): Tarefa {
-  const profile = raw.profiles as { nome: string; papel: Papel } | null
-  const { profiles: _profiles, ...rest } = raw
-  return {
-    ...(rest as unknown as Tarefa),
-    responsavel_nome: profile?.nome ?? null,
-    responsavel_papel: profile?.papel ?? null,
-  }
-}
 
 export function getCategoriasForPhase(
   tarefas: Tarefa[],
@@ -88,31 +85,24 @@ export interface CreateManualTarefaInput {
 }
 
 export async function createManualTarefa(input: CreateManualTarefaInput): Promise<Tarefa> {
-  const { data, error } = await supabase
-    .from('tarefas')
-    .insert({
-      projeto_id: input.projetoId,
-      template_id: null,
-      revisao_id: null,
-      disciplina: input.disciplina,
-      fase: input.fase,
-      categoria: input.categoria,
-      nome: input.nome.trim(),
-      descricao: input.descricao?.trim() || null,
-      criticidade: input.criticidade,
-      origem: input.origem,
-      referencia_normativa: input.referencia_normativa?.trim() || null,
-      metodologia_minima: null,
-      ordem: input.ordem,
-      status: 'pendente',
-      responsavel_id: input.responsavelId,
-      updated_by: input.userId,
-    })
-    .select('*, profiles!responsavel_id(nome, papel)')
-    .single()
+  const row: TarefaInsertRow = {
+    projeto_id: input.projetoId,
+    template_id: null,
+    revisao_id: null,
+    disciplina: input.disciplina,
+    fase: input.fase,
+    categoria: input.categoria,
+    nome: input.nome.trim(),
+    descricao: input.descricao?.trim() || null,
+    criticidade: input.criticidade,
+    origem: input.origem,
+    referencia_normativa: input.referencia_normativa?.trim() || null,
+    ordem: input.ordem,
+    status: 'pendente',
+    responsavel_id: input.responsavelId,
+  }
 
-  if (error) throw new Error(error.message)
-  return mapTarefaRow(data as Record<string, unknown>)
+  return upsertTarefaRpcAndFetch(tarefaInsertRowToRpcParams(row))
 }
 
 export interface UpdateTarefaDetailsInput {
@@ -128,25 +118,17 @@ export interface UpdateTarefaDetailsInput {
 }
 
 export async function updateTarefaDetails(input: UpdateTarefaDetailsInput): Promise<Tarefa> {
-  const { data, error } = await supabase
-    .from('tarefas')
-    .update({
-      nome: input.nome.trim(),
-      descricao: input.descricao?.trim() || null,
-      categoria: input.categoria,
-      criticidade: input.criticidade,
-      origem: input.origem,
-      referencia_normativa: input.referencia_normativa?.trim() || null,
-      responsavel_id: input.responsavelId,
-      updated_at: new Date().toISOString(),
-      updated_by: input.userId,
-    })
-    .eq('id', input.tarefaId)
-    .select('*, profiles!responsavel_id(nome, papel)')
-    .single()
-
-  if (error) throw new Error(error.message)
-  return mapTarefaRow(data as Record<string, unknown>)
+  return upsertTarefaRpcAndFetch(
+    tarefaToRpcParams(await fetchTarefaById(input.tarefaId), {
+      p_nome: input.nome.trim(),
+      p_descricao: input.descricao?.trim() || null,
+      p_categoria: input.categoria,
+      p_criticidade: input.criticidade,
+      p_origem: input.origem,
+      p_referencia_normativa: input.referencia_normativa?.trim() || null,
+      p_responsavel_id: input.responsavelId,
+    }),
+  )
 }
 
 export interface MoveTarefaInput {
@@ -158,52 +140,33 @@ export interface MoveTarefaInput {
 }
 
 export async function moveTarefaToPhase(input: MoveTarefaInput): Promise<Tarefa> {
-  const { data, error } = await supabase
-    .from('tarefas')
-    .update({
-      fase: input.fase,
-      categoria: input.categoria,
-      ordem: input.ordem,
-      updated_at: new Date().toISOString(),
-      updated_by: input.userId,
-    })
-    .eq('id', input.tarefaId)
-    .select('*, profiles!responsavel_id(nome, papel)')
-    .single()
-
-  if (error) throw new Error(error.message)
-  return mapTarefaRow(data as Record<string, unknown>)
+  return upsertTarefaRpcAndFetch(
+    tarefaToRpcParams(await fetchTarefaById(input.tarefaId), {
+      p_fase: input.fase,
+      p_categoria: input.categoria,
+      p_ordem: input.ordem,
+    }),
+  )
 }
 
-export async function softDeleteTarefa(tarefaId: string, userId: string): Promise<void> {
-  const { error } = await supabase
-    .from('tarefas')
-    .update({
-      deleted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      updated_by: userId,
-    })
-    .eq('id', tarefaId)
-
-  if (error) throw new Error(error.message)
+export async function softDeleteTarefa(tarefaId: string, _userId: string): Promise<void> {
+  await deleteTarefaRpc(tarefaId)
 }
 
 export async function reorderTarefasOrdem(
   updates: { id: string; ordem: number }[],
-  userId: string,
+  _userId: string,
 ): Promise<void> {
-  const now = new Date().toISOString()
-  const results = await Promise.all(
-    updates.map(({ id, ordem }) =>
-      supabase
-        .from('tarefas')
-        .update({ ordem, updated_at: now, updated_by: userId })
-        .eq('id', id),
-    ),
+  await Promise.all(
+    updates.map(async ({ id, ordem }) => {
+      const tarefa = await fetchTarefaById(id)
+      await upsertTarefaRpc(
+        tarefaToRpcParams(tarefa, {
+          p_ordem: ordem,
+        }),
+      )
+    }),
   )
-
-  const failed = results.find((r) => r.error)
-  if (failed?.error) throw new Error(failed.error.message)
 }
 
 export function tarefaToFormValues(tarefa: Tarefa) {

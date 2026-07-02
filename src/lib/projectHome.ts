@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { patchProjetoRpc } from './projetoRpc'
 
 export interface ProjetoHomeMetadata {
   nome_empreendimento?: string
@@ -79,15 +79,7 @@ export async function updateProjetoMetadataKey(
     [key]: value.trim() || null,
   }
 
-  const { error } = await supabase
-    .from('projetos')
-    .update({
-      metadata: next,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', projetoId)
-
-  if (error) throw new Error(error.message)
+  await patchProjetoRpc(projetoId, { p_metadata: next })
   return next
 }
 
@@ -102,15 +94,7 @@ export async function updateProjetoMetadataField(
     [field]: value.trim() || null,
   }
 
-  const { error } = await supabase
-    .from('projetos')
-    .update({
-      metadata: next,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', projetoId)
-
-  if (error) throw new Error(error.message)
+  await patchProjetoRpc(projetoId, { p_metadata: next })
   return next
 }
 
@@ -119,13 +103,12 @@ export async function updateProjetoColumn(
   field: ProjetoHomeColumnField,
   value: string | null,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('projetos')
-    .update({
-      [field]: value,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', projetoId)
+  const patch =
+    field === 'endereco'
+      ? { p_endereco: value }
+      : field === 'tipo_edificacao'
+        ? { p_tipo_edificacao: value }
+        : { p_cliente_id: value }
 
-  if (error) throw new Error(error.message)
+  await patchProjetoRpc(projetoId, patch)
 }
