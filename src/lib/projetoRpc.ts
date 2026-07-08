@@ -157,8 +157,12 @@ export async function fetchProjetoById(projetoId: string): Promise<Projeto> {
 }
 
 export async function patchProjetoRpc(
-  projetoId: string,
-  patch: Omit<UpsertProjetoRpcParams, 'p_id'>,
-): Promise<string> {
-  return upsertProjetoRpc({ p_id: projetoId, ...patch })
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { error } = await supabase.rpc('patch_projeto', {
+    p_id: id,
+    p_patch: patch,
+  })
+  if (error) throw error
 }

@@ -1,4 +1,5 @@
-import { DISCIPLINA_LABELS, PHASE_LABELS, PHASE_SEQUENCES } from './constants'
+import { getDisciplinaLabel } from './disciplinaConfig'
+import { getPhaseLabel, getPhaseSequence } from './faseConfig'
 import type { Disciplina, Fase, Tarefa } from '../types'
 
 export interface TarefaVinculadaOption {
@@ -52,8 +53,8 @@ export function groupTarefasForVinculacao(tarefas: Tarefa[]): TarefaVinculadaGro
   groups.sort((a, b) => {
     const discOrder = (a.disciplina as string).localeCompare(b.disciplina as string)
     if (discOrder !== 0) return discOrder
-    const fasesA = PHASE_SEQUENCES[a.disciplina] as readonly Fase[]
-    const fasesB = PHASE_SEQUENCES[b.disciplina] as readonly Fase[]
+    const fasesA = getPhaseSequence(a.disciplina)
+    const fasesB = getPhaseSequence(b.disciplina)
     const faseOrder = fasesA.indexOf(a.fase) - fasesB.indexOf(b.fase)
     if (faseOrder !== 0) return faseOrder
     return a.categoria.localeCompare(b.categoria)
@@ -72,5 +73,5 @@ export function shortTarefaNome(nome: string, max = 36): string {
 }
 
 export function tarefaVinculadaLabel(t: TarefaVinculadaOption): string {
-  return `${t.nome} · ${PHASE_LABELS[t.fase]} · ${DISCIPLINA_LABELS[t.disciplina]}`
+  return `${t.nome} · ${getPhaseLabel(t.fase, t.disciplina)} · ${getDisciplinaLabel(t.disciplina)}`
 }

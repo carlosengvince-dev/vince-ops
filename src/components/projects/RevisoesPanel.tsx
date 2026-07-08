@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useProjectRevisoes } from '../../hooks/useProjectRevisoes'
 import { logActivity } from '../../lib/activityLog'
-import { DISCIPLINA_LABELS, getFaseAtual, hasPermissao } from '../../lib/constants'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { getFaseAtual, hasPermissao } from '../../lib/constants'
 import { fetchProjectPendencias } from '../../lib/pendencias'
 import { hasNovaRevisaoDraft } from '../../lib/modalNovaRevisaoStorage'
 import { completeRevisao, REVISAO_DISCIPLINAS, type RevisaoPrefill } from '../../lib/revisoes'
@@ -120,7 +121,7 @@ export function RevisoesPanel({
       projetoId,
       usuarioId,
       tipo: 'revisao_criada',
-      descricao: `${usuarioNome} criou revisão ${result.revisao.numero} — ${DISCIPLINA_LABELS[result.revisao.disciplina]}`,
+      descricao: `${usuarioNome} criou revisão ${result.revisao.numero} — ${getDisciplinaLabel(result.revisao.disciplina)}`,
       metadata: {
         revisao_id: result.revisao.id,
         numero: result.revisao.numero,
@@ -172,7 +173,7 @@ export function RevisoesPanel({
           <p className="revisoes-panel__status">Carregando revisões…</p>
         ) : items.length === 0 ? (
           <p className="revisoes-panel__status">
-            Nenhuma revisão registrada para {DISCIPLINA_LABELS[revisionDisciplina]}.
+            Nenhuma revisão registrada para {getDisciplinaLabel(revisionDisciplina)}.
           </p>
         ) : (
           <ul className="revisoes-panel__list">

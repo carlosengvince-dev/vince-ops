@@ -1,9 +1,10 @@
-import { DISCIPLINA_LABELS, PHASE_LABELS } from '../../lib/constants'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { getPhaseLabel } from '../../lib/faseConfig'
 import {
   groupTarefasForVinculacao,
   type TarefaVinculadaOption,
 } from '../../lib/tarefaVinculadaUtils'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import type { Tarefa } from '../../types'
 import './TarefaVinculadaSelect.css'
 
@@ -42,7 +43,7 @@ export function TarefaVinculadaSelect({
             className="tarefa-vinculada-select__group"
           >
             <h4 className="tarefa-vinculada-select__group-title">
-              {PHASE_LABELS[group.fase]} · {group.categoria}
+              {getPhaseLabel(group.fase, group.disciplina)} · {group.categoria}
             </h4>
             <ul className="tarefa-vinculada-select__list">
               {group.tarefas.map((t) => (
@@ -83,11 +84,12 @@ function TarefaVinculadaOptionRow({
           <span className="tarefa-vinculada-select__meta">
             <span
               className={`tarefa-vinculada-select__disc ${discToneClasses(tarefa.disciplina)}`}
+              style={discToneStyle(tarefa.disciplina)}
             >
-              {tarefa.disciplina}
+              {getDisciplinaLabel(tarefa.disciplina)}
             </span>
-            <span>{PHASE_LABELS[tarefa.fase]}</span>
-            <span>{DISCIPLINA_LABELS[tarefa.disciplina]}</span>
+            <span>{getPhaseLabel(tarefa.fase, tarefa.disciplina)}</span>
+            <span>{getDisciplinaLabel(tarefa.disciplina)}</span>
           </span>
         </span>
       </label>

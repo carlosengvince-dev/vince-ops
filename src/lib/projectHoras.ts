@@ -6,10 +6,7 @@ export interface ProjetoHorasResumo {
   porDisciplina: Partial<Record<Disciplina, number>>
 }
 
-export interface HorasMesPorDisciplina {
-  HID: number
-  PPCI: number
-}
+export type HorasMesPorDisciplina = Partial<Record<Disciplina, number>>
 
 export function formatHorasMinutos(totalSeconds: number): string {
   if (totalSeconds <= 0) return ''
@@ -137,14 +134,23 @@ export function aggregateHorasMesPorDisciplina(
   rows: { duracao_segundos: number | null; inicio: string; fim: string | null; disciplina: string }[],
   todayStart: string,
 ): HorasMesPorDisciplina {
-  const result: HorasMesPorDisciplina = { HID: 0, PPCI: 0 }
+  const result: HorasMesPorDisciplina = {}
 
   for (const reg of rows) {
     const segundos = computeRegistroSegundos(reg, todayStart)
-    if (segundos <= 0) continue
-    if (reg.disciplina === 'HID') result.HID += segundos
-    else if (reg.disciplina === 'PPCI') result.PPCI += segundos
+    if (segundos <= 0 || !reg.disciplina) continue
+    result[reg.disciplina] = (result[reg.disciplina] ?? 0) + segundos
   }
 
   return result
+}
+
+export function formatHorasMesDisciplinaTooltip(
+  horas: HorasMesPorDisciplina,
+  getLabel: (codigo: Disciplina | string) => string,
+  codigos: Disciplina[],
+): string {
+  return codigos
+    .map((codigo) => `${getLabel(codigo)}: ${formatHorasDecimalShort(horas[codigo] ?? 0)}`)
+    .join(' | ')
 }

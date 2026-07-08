@@ -1,3 +1,4 @@
+import { getActiveDisciplinaCodigos } from './disciplinaConfig'
 import { supabase } from './supabase'
 import {
   copyTemplatesToTarefas,
@@ -7,15 +8,21 @@ import {
 } from './projects'
 import { patchProjetoRpc } from './projetoRpc'
 import { deleteTarefaRpc } from './tarefaRpc'
-import { FASES_COM_CHECKLIST, PHASE_SEQUENCES } from './constants'
+import { FASES_COM_CHECKLIST } from './constants'
+import { getFasesComChecklist } from './faseConfig'
 import type { ChecklistSelectionState, ProjectFormData } from '../types/project-create'
 import { EMPTY_PROJECT_FORM } from '../types/project-create'
 import type { Disciplina, Fase, FasesAtuais, Metodologia, Tarefa, TemplateChecklist } from '../types'
 
+export function getAllDisciplinas(): Disciplina[] {
+  return getActiveDisciplinaCodigos()
+}
+
+/** @deprecated Use getAllDisciplinas() */
 export const ALL_DISCIPLINAS: Disciplina[] = ['HID', 'PPCI', 'SPK']
 
 export function getDisciplinasDisponiveis(current: Disciplina[]): Disciplina[] {
-  return ALL_DISCIPLINAS.filter((d) => !current.includes(d))
+  return getActiveDisciplinaCodigos().filter((d) => !current.includes(d))
 }
 
 export function countTarefasDaDisciplina(tarefas: Tarefa[], disciplina: Disciplina): number {
@@ -79,7 +86,7 @@ export function filterTemplatesForNovaDisciplina(
 }
 
 export function getSelectablePhases(disciplina: Disciplina): Fase[] {
-  return PHASE_SEQUENCES[disciplina].filter((f) => FASES_COM_CHECKLIST.includes(f))
+  return getFasesComChecklist(disciplina)
 }
 
 export function filterTemplatesForDisciplinaMetodologia(
@@ -133,9 +140,9 @@ export async function addDisciplinaToProjeto(
   )
 
   await patchProjetoRpc(input.projetoId, {
-    p_disciplinas: disciplinas,
-    p_metodologia: metodologia,
-    p_fases_atuais: fases_atuais,
+    disciplinas,
+    metodologia,
+    fases_atuais,
   })
 
   const tarefas = await copyTemplatesToTarefas(input.projetoId, selected)
@@ -186,9 +193,9 @@ export async function removeDisciplinaFromProjeto(
   }
 
   await patchProjetoRpc(input.projetoId, {
-    p_disciplinas: disciplinas,
-    p_metodologia: metodologia,
-    p_fases_atuais: fases_atuais,
+    disciplinas,
+    metodologia,
+    fases_atuais,
   })
 
   return { disciplinas, metodologia, fases_atuais, archivedTaskIds }

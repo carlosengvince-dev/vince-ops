@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { PHASE_LABELS, PROJETO_STATUS_LABELS, hasPermissao } from '../../lib/constants'
+import { PROJETO_STATUS_LABELS, hasPermissao } from '../../lib/constants'
+import { createCategoria, fetchCategoriaNomes } from '../../lib/categoriaConfig'
+import { getPhaseLabel } from '../../lib/faseConfig'
 import { groupTarefasByCategoria } from '../../lib/projectTasks'
 import {
   createManualTarefa,
@@ -49,6 +51,7 @@ interface ChecklistPanelProps {
   readOnly?: boolean
   documentos?: DocumentoProjeto[]
   onNavigateToPreInfo?: () => void
+  resolvePhaseLabel?: (codigo: Fase, disciplina: Disciplina) => string
 }
 
 export function ChecklistPanel({
@@ -77,6 +80,7 @@ export function ChecklistPanel({
   readOnly = false,
   documentos = [],
   onNavigateToPreInfo,
+  resolvePhaseLabel = getPhaseLabel,
 }: ChecklistPanelProps) {
   const canManage = hasPermissao(papel, 'editar_projeto') && !readOnly
   const viewingOther = fase !== faseOficial
@@ -94,10 +98,27 @@ export function ChecklistPanel({
   )
 
   const grouped = useMemo(() => groupTarefasByCategoria(phaseTarefas), [phaseTarefas])
-  const categorias = useMemo(
-    () => getCategoriasForPhase(allTarefas, disciplina, fase),
-    [allTarefas, disciplina, fase],
-  )
+  const [configCategorias, setConfigCategorias] = useState<string[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetchCategoriaNomes(disciplina)
+      .then((names) => {
+        if (!cancelled) setConfigCategorias(names)
+      })
+      .catch(() => {
+        if (!cancelled) setConfigCategorias([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [disciplina])
+
+  const categorias = useMemo(() => {
+    const phaseCats = getCategoriasForPhase(allTarefas, disciplina, fase)
+    const merged = new Set([...configCategorias, ...phaseCats])
+    return Array.from(merged).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [allTarefas, configCategorias, disciplina, fase])
 
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
@@ -108,6 +129,26 @@ export function ChecklistPanel({
   const [formError, setFormError] = useState<string | null>(null)
   const [moveError, setMoveError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const editCategorias = useMemo(() => {
+    if (!editingTarefa) return categorias
+    if (categorias.includes(editingTarefa.categoria)) return categorias
+    return [...categorias, editingTarefa.categoria].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [categorias, editingTarefa])
+
+  const ensureCategoriaConfig = useCallback(
+    async (nome: string) => {
+      if (!configCategorias.includes(nome)) {
+        await createCategoria(disciplina, nome)
+        setConfigCategorias((prev) =>
+          prev.includes(nome)
+            ? prev
+            : [...prev, nome].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+        )
+      }
+    },
+    [configCategorias, disciplina],
+  )
 
   const openCreate = useCallback(() => {
     setFormMode('create')
@@ -135,6 +176,7 @@ export function ChecklistPanel({
     setSaving(true)
     setFormError(null)
     try {
+      await ensureCategoriaConfig(values.categoriaFinal)
       if (formMode === 'create') {
         const ordem = getNextOrdemInCategoria(allTarefas, disciplina, fase, values.categoriaFinal)
         const created = await createManualTarefa({
@@ -158,7 +200,7 @@ export function ChecklistPanel({
           projetoId,
           usuarioId,
           tipo: 'tarefa_status_alterado',
-          descricao: `${usuarioNome} adicionou tarefa '${created.nome}' em ${disciplina} — ${PHASE_LABELS[fase]}`,
+          descricao: `${usuarioNome} adicionou tarefa '${created.nome}' em ${disciplina} — ${resolvePhaseLabel(fase, disciplina)}`,
           metadata: { tarefa_id: created.id, acao: 'tarefa_criada' },
         })
         onActivityLogged?.()
@@ -198,6 +240,7 @@ export function ChecklistPanel({
     setSaving(true)
     setMoveError(null)
     try {
+      await ensureCategoriaConfig(categoriaDestino)
       const ordem = getNextOrdemInCategoria(allTarefas, disciplina, faseDestino, categoriaDestino)
       const updated = await moveTarefaToPhase({
         tarefaId: moveTarefa.id,
@@ -213,7 +256,7 @@ export function ChecklistPanel({
         projetoId,
         usuarioId,
         tipo: 'tarefa_status_alterado',
-        descricao: `${usuarioNome} moveu '${updated.nome}' de ${PHASE_LABELS[moveTarefa.fase]} para ${PHASE_LABELS[faseDestino]}`,
+        descricao: `${usuarioNome} moveu '${updated.nome}' de ${resolvePhaseLabel(moveTarefa.fase, disciplina)} para ${resolvePhaseLabel(faseDestino, disciplina)}`,
         metadata: {
           tarefa_id: updated.id,
           fase_origem: moveTarefa.fase,
@@ -242,7 +285,7 @@ export function ChecklistPanel({
         projetoId,
         usuarioId,
         tipo: 'tarefa_status_alterado',
-        descricao: `${usuarioNome} excluiu tarefa '${deleteTarefa.nome}' em ${disciplina} — ${PHASE_LABELS[deleteTarefa.fase]}`,
+        descricao: `${usuarioNome} excluiu tarefa '${deleteTarefa.nome}' em ${disciplina} — ${resolvePhaseLabel(deleteTarefa.fase, disciplina)}`,
         metadata: { tarefa_id: deleteTarefa.id, acao: 'tarefa_excluida' },
       })
       onActivityLogged?.()
@@ -271,13 +314,6 @@ export function ChecklistPanel({
         ? ` Esta tarefa tem ${formatTimerHours(deleteTimerHours)}h registradas. Os registros de tempo serão mantidos no histórico mas não serão exibidos no projeto.`
         : '')
 
-  const editCategorias = useMemo(() => {
-    if (!editingTarefa) return categorias
-    const set = new Set(categorias)
-    set.add(editingTarefa.categoria)
-    return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [categorias, editingTarefa])
-
   const criticosAguardando = useMemo(
     () => (fase === 'AP' ? countCriticosAguardando(documentos) : 0),
     [documentos, fase],
@@ -289,7 +325,7 @@ export function ChecklistPanel({
         <div>
           <h1 className="checklist-panel__title">{nome}</h1>
           <p className="checklist-panel__subtitle">
-            {clienteNome ?? 'Sem cliente'} · {PHASE_LABELS[fase]}
+            {clienteNome ?? 'Sem cliente'} · {resolvePhaseLabel(fase, disciplina)}
           </p>
         </div>
         <span className={`checklist-panel__status checklist-panel__status--${status.replace('_', '')}`}>
@@ -300,8 +336,8 @@ export function ChecklistPanel({
       <div className="checklist-panel__body">
         {viewingOther && !readOnly ? (
           <div className="checklist-panel__banner" role="status">
-            Visualizando <strong>{PHASE_LABELS[fase]}</strong> — fase oficial:{' '}
-            <strong>{PHASE_LABELS[faseOficial]}</strong>. Itens de qualquer fase podem ser editados.
+            Visualizando <strong>{resolvePhaseLabel(fase, disciplina)}</strong> — fase oficial:{' '}
+            <strong>{resolvePhaseLabel(faseOficial, disciplina)}</strong>. Itens de qualquer fase podem ser editados.
           </div>
         ) : null}
 

@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { DISCIPLINA_LABELS } from '../../lib/constants'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import { groupTarefasByCategoria } from '../../lib/projectTasks'
 import {
   canCompleteRevisao,
@@ -67,8 +67,8 @@ export function RevisaoCard({
         <div className="revisao-card__main">
           <div className="revisao-card__top">
             <span className="revisao-card__numero">{revisao.numero}</span>
-            <span className={`revisao-card__disc ${discToneClasses(revisao.disciplina)}`}>
-              {DISCIPLINA_LABELS[revisao.disciplina]}
+            <span className={`revisao-card__disc ${discToneClasses(revisao.disciplina)}`} style={discToneStyle(revisao.disciplina)}>
+              {getDisciplinaLabel(revisao.disciplina)}
             </span>
             <span
               className={`revisao-card__origem revisao-card__origem--${origemModifier(revisao.origem)}`}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Criticidade, ExecutorPadrao, Metodologia, OrigemNormativa } from '../../types'
+import type { Criticidade, ExecutorPadrao, Fase, Metodologia, OrigemNormativa } from '../../types'
 import { CRITICIDADE_OPTIONS, TAREFA_ORIGEM_OPTIONS } from '../../lib/tarefaManagement'
 import type { TemplateChecklistInput } from '../../lib/templatesChecklist'
 import { Button } from '../ui/Button'
@@ -29,6 +29,12 @@ interface TemplateFormModalProps {
   loading?: boolean
   error?: string | null
   initial?: Partial<TemplateFormValues>
+  categoriaLabel?: string | null
+  faseSelect?: {
+    options: { value: Fase; label: string }[]
+    value: Fase | ''
+    onChange: (fase: Fase) => void
+  } | null
   onClose: () => void
   onSubmit: (values: TemplateFormValues) => void
 }
@@ -50,19 +56,27 @@ export function TemplateFormModal({
   loading = false,
   error = null,
   initial,
+  categoriaLabel = null,
+  faseSelect = null,
   onClose,
   onSubmit,
 }: TemplateFormModalProps) {
   const [form, setForm] = useState<TemplateFormValues>(DEFAULT)
   const [nomeError, setNomeError] = useState<string | null>(null)
+  const [faseError, setFaseError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setForm({ ...DEFAULT, ...initial })
     setNomeError(null)
+    setFaseError(null)
   }, [open, initial])
 
   function handleSubmit() {
+    if (faseSelect && !faseSelect.value) {
+      setFaseError('Selecione a fase')
+      return
+    }
     if (!form.nome.trim()) {
       setNomeError('Nome é obrigatório')
       return
@@ -82,6 +96,33 @@ export function TemplateFormModal({
       onClose={onClose}
     >
       <div className="template-form-modal">
+        {categoriaLabel ? (
+          <p className="template-form-modal__categoria">
+            Categoria: <strong>{categoriaLabel}</strong>
+          </p>
+        ) : null}
+
+        {faseSelect ? (
+          <label className="template-form-modal__field">
+            <span className="template-form-modal__label">Fase *</span>
+            <select
+              value={faseSelect.value}
+              onChange={(e) => {
+                faseSelect.onChange(e.target.value as Fase)
+                if (faseError) setFaseError(null)
+              }}
+            >
+              <option value="">Selecione a fase</option>
+              {faseSelect.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            {faseError ? <span className="template-form-modal__field-error">{faseError}</span> : null}
+          </label>
+        ) : null}
+
         <Input
           label="Nome *"
           value={form.nome}

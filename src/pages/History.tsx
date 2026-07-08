@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { PageWrapper } from '../components/layout/PageWrapper'
 import { disciplinaTabClass } from '../components/ui/DisciplinaTabs'
-import { discToneClasses } from '../lib/disciplinaTokens'
+import { disciplinaTabStyle, discToneClasses, discToneStyle } from '../lib/disciplinaTokens'
 import {
   formatHistoricoDate,
   formatHistoricoHoras,
@@ -11,6 +11,7 @@ import {
 } from '../lib/historico'
 import { PROJETO_STATUS_LABELS } from '../lib/constants'
 import { useHistoricoProjects } from '../hooks/useProjects'
+import { useDisciplinasConfig } from '../contexts/DisciplinasConfigContext'
 import type { Disciplina, ProjetoStatus } from '../types'
 import './History.css'
 
@@ -24,13 +25,6 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'concluido', label: 'Concluídos' },
   { value: 'cancelado', label: 'Cancelados' },
   { value: 'suspenso', label: 'Suspensos' },
-]
-
-const DISCIPLINA_FILTERS: { value: DisciplinaFilter; label: string }[] = [
-  { value: 'todos', label: 'Todos' },
-  { value: 'HID', label: 'HID' },
-  { value: 'PPCI', label: 'PPCI' },
-  { value: 'SPK', label: 'SPK' },
 ]
 
 function matchesSearch(projeto: HistoricoProjetoRow, query: string): boolean {
@@ -88,6 +82,16 @@ function SortHeader({
 
 export default function History() {
   const { projetos, loading, error } = useHistoricoProjects()
+  const { disciplinas, getLabel } = useDisciplinasConfig()
+  const disciplinaFilters = useMemo(
+    () => [
+      { value: 'todos' as DisciplinaFilter, label: 'Todos' },
+      ...disciplinas
+        .filter((d) => d.ativo)
+        .map((d) => ({ value: d.codigo as DisciplinaFilter, label: getLabel(d.codigo) })),
+    ],
+    [disciplinas, getLabel],
+  )
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos')
   const [disciplinaFilter, setDisciplinaFilter] = useState<DisciplinaFilter>('todos')
@@ -149,7 +153,7 @@ export default function History() {
               ))}
             </div>
             <div className="history-page__filters" role="group" aria-label="Filtrar por disciplina">
-              {DISCIPLINA_FILTERS.map((opt) => {
+              {disciplinaFilters.map((opt) => {
                 const active = disciplinaFilter === opt.value
                 const className =
                   opt.value === 'todos'
@@ -160,6 +164,7 @@ export default function History() {
                     key={opt.value}
                     type="button"
                     className={className}
+                    style={opt.value === 'todos' ? undefined : disciplinaTabStyle(opt.value, active)}
                     onClick={() => setDisciplinaFilter(opt.value)}
                   >
                     {opt.label}
@@ -237,8 +242,9 @@ export default function History() {
                           <span
                             key={d}
                             className={`history__disc-badge ${discToneClasses(d)} disc-tone--on`}
+                            style={discToneStyle(d)}
                           >
-                            {d}
+                            {getLabel(d)}
                           </span>
                         ))}
                       </div>

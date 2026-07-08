@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { deleteClienteRpc, fetchClienteById, upsertClienteRpc } from '../lib/clienteRpc'
 import { supabase } from '../lib/supabase'
 import type { Cliente, Projeto } from '../types'
 
@@ -48,15 +49,16 @@ function aggregateStats(clientes: Cliente[], projetos: Pick<Projeto, 'cliente_id
   })
 }
 
-function toPayload(data: ClienteFormData) {
+function toRpcParams(data: ClienteFormData, id: string | null = null) {
   return {
-    nome: data.nome.trim(),
-    contato: data.contato.trim() || null,
-    email: data.email.trim() || null,
-    telefone: data.telefone.trim() || null,
-    cnpj_cpf: data.cnpj_cpf.trim() || null,
-    observacoes: data.observacoes.trim() || null,
-    updated_at: new Date().toISOString(),
+    p_id: id,
+    p_nome: data.nome.trim(),
+    p_contato: data.contato.trim() || null,
+    p_email: data.email.trim() || null,
+    p_telefone: data.telefone.trim() || null,
+    p_cnpj_cpf: data.cnpj_cpf.trim() || null,
+    p_observacoes: data.observacoes.trim() || null,
+    p_metadata: {},
   }
 }
 
@@ -113,52 +115,27 @@ export function useClients(options?: { enabled?: boolean }) {
 
   const createCliente = useCallback(
     async (data: ClienteFormData): Promise<Cliente> => {
-      const { data: created, error: insertError } = await supabase
-        .from('clientes')
-        .insert(toPayload(data))
-        .select('*')
-        .single()
-
-      if (insertError) {
-        throw new Error(insertError.message)
-      }
-
+      const id = await upsertClienteRpc(toRpcParams(data))
+      const created = await fetchClienteById(id)
       await fetchClientes()
-      return created as Cliente
+      return created
     },
     [fetchClientes],
   )
 
   const updateCliente = useCallback(
     async (id: string, data: ClienteFormData): Promise<Cliente> => {
-      const { data: updated, error: updateError } = await supabase
-        .from('clientes')
-        .update(toPayload(data))
-        .eq('id', id)
-        .select('*')
-        .single()
-
-      if (updateError) {
-        throw new Error(updateError.message)
-      }
-
+      await upsertClienteRpc(toRpcParams(data, id))
+      const updated = await fetchClienteById(id)
       await fetchClientes()
-      return updated as Cliente
+      return updated
     },
     [fetchClientes],
   )
 
   const deleteCliente = useCallback(
     async (id: string): Promise<void> => {
-      const { error: deleteError } = await supabase
-        .from('clientes')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id)
-
-      if (deleteError) {
-        throw new Error(deleteError.message)
-      }
-
+      await deleteClienteRpc(id)
       await fetchClientes()
     },
     [fetchClientes],

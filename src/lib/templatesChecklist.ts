@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { tarefaToRpcParams, upsertTarefaRpc } from './tarefaRpc'
 import type {
   Criticidade,
   Disciplina,
@@ -198,63 +197,6 @@ export async function reorderTemplates(updates: { id: string; ordem: number }[])
       ),
     ),
   )
-}
-
-export async function renameCategoriaInTemplates(
-  disciplina: Disciplina,
-  from: string,
-  to: string,
-): Promise<number> {
-  const { data, error } = await supabase
-    .from('templates_checklist')
-    .select('*')
-    .eq('disciplina', disciplina)
-    .eq('categoria', from)
-    .is('deleted_at', null)
-
-  if (error) throw new Error(error.message)
-
-  const templates = (data ?? []) as TemplateChecklist[]
-  await Promise.all(
-    templates.map((t) => upsertTemplateRpc(templateToRpcParams(t, { categoria: to }))),
-  )
-
-  return templates.length
-}
-
-export async function renameCategoriaInTarefasAtivas(
-  disciplina: Disciplina,
-  from: string,
-  to: string,
-): Promise<number> {
-  const { data: projetos, error: projError } = await supabase
-    .from('projetos')
-    .select('id')
-    .in('status', ['ativo', 'em_revisao'])
-    .is('deleted_at', null)
-
-  if (projError) throw new Error(projError.message)
-  const ids = (projetos ?? []).map((p) => p.id)
-  if (ids.length === 0) return 0
-
-  const { data, error } = await supabase
-    .from('tarefas')
-    .select('*')
-    .in('projeto_id', ids)
-    .eq('disciplina', disciplina)
-    .eq('categoria', from)
-    .is('deleted_at', null)
-
-  if (error) throw new Error(error.message)
-
-  const tarefas = (data ?? []) as import('../types').Tarefa[]
-  await Promise.all(
-    tarefas.map((tarefa) =>
-      upsertTarefaRpc(tarefaToRpcParams(tarefa, { p_categoria: to })),
-    ),
-  )
-
-  return tarefas.length
 }
 
 export async function countTemplatesInCategoria(

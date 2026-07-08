@@ -39,6 +39,11 @@
   gap: 0;
 }
 
+.project-detail__main--loading {
+  padding: 24px;
+  overflow: auto;
+}
+
 .project-detail__readonly-banner {
   display: flex;
   align-items: center;

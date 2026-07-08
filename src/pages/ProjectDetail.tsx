@@ -11,6 +11,7 @@ import { ProjectDetailTabs } from '../components/projects/ProjectDetailTabs'
 import { ProjectFechamentoCard } from '../components/projects/ProjectFechamentoCard'
 import { ProjectHomePanel } from '../components/projects/ProjectHomePanel'
 import { Button } from '../components/ui/Button'
+import { SkeletonChecklist } from '../components/ui/Skeleton'
 import { useAuth } from '../hooks/useAuth'
 import { useProjectDetail } from '../hooks/useProjectDetail'
 import { useProjectDetailNavigation } from '../hooks/useProjectDetailNavigation'
@@ -32,14 +33,23 @@ import {
 import { fetchProjectRevisoes } from '../lib/revisoes'
 import {
   canAdvancePhase,
-  DISCIPLINA_LABELS,
   getFaseAtual,
   getNextFase,
   hasPermissao,
-  PHASE_LABELS,
   PROJETO_STATUS_LABELS,
   TAREFA_STATUS_LABELS,
 } from '../lib/constants'
+import { getDisciplinaLabel } from '../lib/disciplinaConfig'
+import {
+  buildProjetoFaseOverrideMap,
+  getActivePhaseSequenceForProjeto,
+  getFrozenPhaseSequence,
+  parseEstruturaFasesFromSnapshot,
+  resolvePhaseLabelForProjeto,
+  shouldUseFrozenEstruturaFases,
+  setFaseProjetosAtivosRpc,
+  setProjetoFaseRpc,
+} from '../lib/faseConfig'
 import {
   advanceProjectPhase,
   liberarFaseBloqueada,
@@ -78,12 +88,30 @@ export default function ProjectDetail() {
     () => parseSnapshotFechamento(projeto?.snapshot_fechamento),
     [projeto?.snapshot_fechamento],
   )
+  const estruturaFases = useMemo(() => {
+    if (!projeto || !shouldUseFrozenEstruturaFases(projeto.status, projeto.snapshot_fechamento)) {
+      return null
+    }
+    return parseEstruturaFasesFromSnapshot(projeto.snapshot_fechamento)
+  }, [projeto])
+  const resolvePhaseLabel = useCallback(
+    (codigo: Fase, disciplina: Disciplina) => {
+      if (!projeto) return codigo
+      return resolvePhaseLabelForProjeto(codigo, disciplina, {
+        status: projeto.status,
+        snapshotFechamento: projeto.snapshot_fechamento,
+      })
+    },
+    [projeto],
+  )
   const canReabrir =
     readOnly &&
     projeto?.status === 'suspenso' &&
     projeto.modo_criacao !== 'historico' &&
     profile != null &&
     hasPermissao(profile.papel, 'editar_projeto')
+
+  const projetoFaseOverrides = data?.projetoFaseOverrides ?? []
 
   const {
     mainTab,
@@ -99,7 +127,7 @@ export default function ProjectDetail() {
     setExpandedPendenciaId,
     navigateToRevisoes,
     navigateToChecklist,
-  } = useProjectDetailNavigation(projeto)
+  } = useProjectDetailNavigation(projeto, projetoFaseOverrides, estruturaFases)
 
   const [advanceModal, setAdvanceModal] = useState<{
     mode: 'confirm' | 'liberacao'
@@ -135,10 +163,31 @@ export default function ProjectDetail() {
   const tarefas = data?.tarefas ?? []
   const documentos = data?.documentos ?? []
 
+  const activePhaseContext = useMemo(() => {
+    if (!disciplinaAtiva) {
+      return {
+        sequence: [] as Fase[],
+        activePhaseSet: new Set<Fase>(),
+      }
+    }
+    const overrideMap = buildProjetoFaseOverrideMap(projetoFaseOverrides)
+    const sequence = estruturaFases && disciplinaAtiva
+      ? getFrozenPhaseSequence(disciplinaAtiva, estruturaFases)
+      : getActivePhaseSequenceForProjeto(disciplinaAtiva, overrideMap)
+    return {
+      sequence,
+      activePhaseSet: new Set(sequence),
+    }
+  }, [disciplinaAtiva, projetoFaseOverrides, estruturaFases])
+
   const faseOficial = useMemo(() => {
     if (!projeto || !disciplinaAtiva) return null
-    return getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplinaAtiva)
-  }, [projeto, disciplinaAtiva])
+    return getFaseAtual(
+      projeto.fases_atuais as Record<string, unknown>,
+      disciplinaAtiva,
+      activePhaseContext.sequence,
+    )
+  }, [projeto, disciplinaAtiva, activePhaseContext.sequence])
 
 
   const handleRevisaoCreated = useCallback(
@@ -365,7 +414,7 @@ export default function ProjectDetail() {
           projetoId: projeto.id,
           usuarioId: profile.id,
           tipo: 'projeto_status_alterado',
-          descricao: `${profile.nome} adicionou disciplina ${DISCIPLINA_LABELS[disciplina]} ao projeto`,
+          descricao: `${profile.nome} adicionou disciplina ${getDisciplinaLabel(disciplina)} ao projeto`,
           metadata: { disciplina, acao: 'disciplina_adicionada' },
         })
         bumpActivityFeed()
@@ -421,7 +470,7 @@ export default function ProjectDetail() {
           projetoId: projeto.id,
           usuarioId: profile.id,
           tipo: 'projeto_status_alterado',
-          descricao: `${profile.nome} removeu disciplina ${DISCIPLINA_LABELS[disciplina]} do projeto${archivedSuffix}`,
+          descricao: `${profile.nome} removeu disciplina ${getDisciplinaLabel(disciplina)} do projeto${archivedSuffix}`,
           metadata: {
             disciplina,
             acao: 'disciplina_removida',
@@ -447,6 +496,7 @@ export default function ProjectDetail() {
           currentDataConclusaoReal: projeto.data_conclusao_real,
           currentSnapshotFechamento: projeto.snapshot_fechamento,
           dataEntregaPrevista: projeto.data_entrega_prevista,
+          disciplinas: projeto.disciplinas,
         })
 
         patchProjeto({
@@ -495,6 +545,48 @@ export default function ProjectDetail() {
     [profile, projeto, patchProjeto, bumpActivityFeed, navigate],
   )
 
+  const handleToggleProjetoFase = useCallback(
+    async (params: {
+      disciplina: Disciplina
+      fase: { id: string; codigo: Fase; label: string }
+      ativa: boolean
+      scope: 'projeto' | 'projetos_ativos'
+    }) => {
+      if (!profile || !projeto) return
+      setActionError(null)
+      try {
+        if (params.scope === 'projetos_ativos') {
+          await setFaseProjetosAtivosRpc(params.fase.id, params.ativa)
+        } else {
+          await setProjetoFaseRpc(projeto.id, params.fase.id, params.ativa)
+        }
+
+        if (!params.ativa) {
+          void logActivity({
+            projetoId: projeto.id,
+            usuarioId: profile.id,
+            tipo: 'projeto_status_alterado',
+            descricao: `${profile.nome} desativou a fase ${params.fase.label} (${params.disciplina})`,
+            metadata: {
+              acao: 'fase_desativada_projeto',
+              disciplina: params.disciplina,
+              fase: params.fase.codigo,
+              escopo: params.scope,
+            },
+          })
+          bumpActivityFeed()
+        }
+
+        await refresh()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao atualizar fase do projeto'
+        setActionError(message)
+        throw err
+      }
+    },
+    [profile, projeto, bumpActivityFeed, refresh],
+  )
+
   const handleTarefaCreated = useCallback(
     (tarefa: Tarefa) => {
       appendTarefa(tarefa)
@@ -536,8 +628,14 @@ export default function ProjectDetail() {
 
   const advanceCheck = useMemo(() => {
     if (!disciplinaAtiva || !faseOficial) return null
-    return canAdvancePhase(disciplinaAtiva, faseOficial, tarefas)
-  }, [disciplinaAtiva, faseOficial, tarefas])
+    return canAdvancePhase(
+      disciplinaAtiva,
+      faseOficial,
+      tarefas,
+      activePhaseContext.sequence,
+      activePhaseContext.activePhaseSet,
+    )
+  }, [activePhaseContext, disciplinaAtiva, faseOficial, tarefas])
 
   const canShowAdvance =
     !readOnly &&
@@ -673,7 +771,7 @@ export default function ProjectDetail() {
           projetoId: projeto.id,
           usuarioId: profile.id,
           tipo: 'fase_liberada',
-          descricao: `${profile.nome} liberou ${PHASE_LABELS[faseOficial]} com justificativa: '${justificativa}'`,
+          descricao: `${profile.nome} liberou ${resolvePhaseLabel(faseOficial, disciplinaAtiva)} com justificativa: '${justificativa}'`,
           metadata: {
             disciplina: disciplinaAtiva,
             fase_liberada: faseOficial,
@@ -696,7 +794,7 @@ export default function ProjectDetail() {
           projetoId: projeto.id,
           usuarioId: profile.id,
           tipo: 'fase_avancada',
-          descricao: `${profile.nome} avançou ${DISCIPLINA_LABELS[disciplinaAtiva]} para ${PHASE_LABELS[advanceCheck.nextFase]}`,
+          descricao: `${profile.nome} avançou ${getDisciplinaLabel(disciplinaAtiva)} para ${resolvePhaseLabel(advanceCheck.nextFase, disciplinaAtiva)}`,
           metadata: {
             disciplina: disciplinaAtiva,
             fase_anterior: faseOficial,
@@ -727,10 +825,14 @@ export default function ProjectDetail() {
     }
   }
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div className="project-detail project-detail--center">
-        <p className="project-detail__status">Carregando projeto…</p>
+      <div className="project-detail">
+        <div className="project-detail__layout">
+          <div className="project-detail__main project-detail__main--loading">
+            <SkeletonChecklist lines={5} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -744,7 +846,8 @@ export default function ProjectDetail() {
     )
   }
 
-  const isLastPhase = getNextFase(disciplinaAtiva, faseOficial) === null
+  const isLastPhase =
+    getNextFase(disciplinaAtiva, faseOficial, activePhaseContext.sequence) === null
   const viewingOther = faseAtiva !== faseOficial
 
   return (
@@ -756,6 +859,8 @@ export default function ProjectDetail() {
           faseAtiva={faseAtiva}
           fasesAtuais={projeto.fases_atuais}
           tarefas={tarefas}
+          projetoFaseOverrides={projetoFaseOverrides}
+          estruturaFases={estruturaFases}
           onDisciplinaChange={setDisciplinaAtiva}
           onFaseChange={setFaseAtiva}
         />
@@ -822,6 +927,10 @@ export default function ProjectDetail() {
               horasEstimadasPpci={projeto.horas_estimadas_ppci}
               camposCustom={camposCustom}
               onSaveCustomField={handleCustomFieldSave}
+              fasesAtuais={projeto.fases_atuais as Record<string, unknown>}
+              projetoFaseOverrides={projetoFaseOverrides}
+              estruturaFases={estruturaFases}
+              onToggleProjetoFase={handleToggleProjetoFase}
             />
           ) : mainTab === 'atividade' ? (
             <ActivityFeedPanel
@@ -912,6 +1021,7 @@ export default function ProjectDetail() {
               readOnly={readOnly}
               documentos={documentos}
               onNavigateToPreInfo={handleNavigateToPreInfo}
+              resolvePhaseLabel={resolvePhaseLabel}
             />
           )}
         </div>

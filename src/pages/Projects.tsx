@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import { PageWrapper } from '../components/layout/PageWrapper'
+import { SkeletonProjectCardGrid } from '../components/ui/Skeleton'
 import { ProjectCard } from '../components/projects/ProjectCard'
 import { SuspendedProjects } from '../components/projects/SuspendedProjects'
 import { useAuth } from '../hooks/useAuth'
@@ -110,8 +111,8 @@ export default function Projects() {
           </p>
         ) : null}
 
-        {loading ? (
-          <p className="projects-page__status">Carregando projetos…</p>
+        {loading && ativos.length === 0 && suspensos.length === 0 ? (
+          <SkeletonProjectCardGrid count={3} />
         ) : filteredProjetos.length === 0 ? (
           <div className="projects-page__empty">
             <p>Nenhum projeto encontrado.</p>

@@ -10,22 +10,6 @@ export const DEFAULT_TIPOS_EDIFICACAO = [
   'Saúde',
 ] as const
 
-export const DEFAULT_CATEGORIAS_HID = [
-  'Hidráulica',
-  'Sanitário',
-  'Águas pluviais',
-  'Geral',
-] as const
-
-export const DEFAULT_CATEGORIAS_PPCI = [
-  'Sistemas de proteção',
-  'Saídas de emergência',
-  'Compartimentação',
-  'Geral',
-] as const
-
-export const DEFAULT_CATEGORIAS_SPK = ['Sprinkler', 'Geral'] as const
-
 export interface DocumentoPadraoConfig {
   nome: string
   tipo: string
@@ -98,26 +82,4 @@ export async function saveConfiguracao(
 
   if (error) throw new Error(error.message)
   configuracoesIndisponivel = false
-}
-
-export function categoriasChave(disciplina: 'HID' | 'PPCI' | 'SPK'): string {
-  return `categorias_${disciplina.toLowerCase()}`
-}
-
-export function defaultCategorias(disciplina: 'HID' | 'PPCI' | 'SPK'): readonly string[] {
-  if (disciplina === 'HID') return DEFAULT_CATEGORIAS_HID
-  if (disciplina === 'PPCI') return DEFAULT_CATEGORIAS_PPCI
-  return DEFAULT_CATEGORIAS_SPK
-}
-
-export async function fetchCategoriasDisciplina(disciplina: 'HID' | 'PPCI' | 'SPK'): Promise<string[]> {
-  return fetchConfiguracaoLista(categoriasChave(disciplina), defaultCategorias(disciplina))
-}
-
-export async function saveCategoriasDisciplina(
-  disciplina: 'HID' | 'PPCI' | 'SPK',
-  categorias: string[],
-  userId?: string,
-): Promise<void> {
-  await saveConfiguracao(categoriasChave(disciplina), categorias, userId)
 }

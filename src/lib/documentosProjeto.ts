@@ -1,7 +1,11 @@
 import { DEFAULT_DOCUMENTOS_PADRAO } from './constants'
 import { fetchConfiguracaoJson, saveConfiguracao } from './configuracoes'
 import type { DocumentoPadraoConfig } from './configuracoes'
-import { supabase } from './supabase'
+import {
+  deleteDocumentoProjetoRpc,
+  fetchDocumentoProjetoById,
+  upsertDocumentoProjetoRpc,
+} from './documentoProjetoRpc'
 import type { DocumentoProjeto, DocumentoStatus } from '../types'
 
 export async function fetchDefaultDocumentosPadrao(): Promise<DocumentoPadraoConfig[]> {
@@ -25,30 +29,28 @@ export async function updateDocumentoStatus(
   status: DocumentoStatus,
   dataRecebimento?: string | null,
 ): Promise<void> {
-  const patch: Record<string, unknown> = {
-    status,
-    updated_at: new Date().toISOString(),
-  }
+  let data_recebimento: string | null | undefined
   if (status === 'recebido') {
-    patch.data_recebimento = dataRecebimento ?? new Date().toISOString().slice(0, 10)
+    data_recebimento = dataRecebimento ?? new Date().toISOString().slice(0, 10)
   } else if (status === 'aguardando') {
-    patch.data_recebimento = null
+    data_recebimento = null
   }
 
-  const { error } = await supabase.from('documentos_projeto').update(patch).eq('id', id)
-  if (error) throw new Error(error.message)
+  await upsertDocumentoProjetoRpc({
+    p_id: id,
+    p_status: status,
+    ...(data_recebimento !== undefined ? { p_data_recebimento: data_recebimento } : {}),
+  })
 }
 
 export async function updateDocumentoObservacoes(
   id: string,
   observacoes: string | null,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('documentos_projeto')
-    .update({ observacoes, updated_at: new Date().toISOString() })
-    .eq('id', id)
-
-  if (error) throw new Error(error.message)
+  await upsertDocumentoProjetoRpc({
+    p_id: id,
+    p_observacoes: observacoes,
+  })
 }
 
 export async function createDocumentoAvulso(
@@ -56,30 +58,21 @@ export async function createDocumentoAvulso(
   nome: string,
   tipo: string,
 ): Promise<DocumentoProjeto> {
-  const { data, error } = await supabase
-    .from('documentos_projeto')
-    .insert({
-      projeto_id: projetoId,
-      nome: nome.trim(),
-      tipo: tipo.trim() || 'Outro',
-      status: 'aguardando',
-      critico: false,
-      disciplina: null,
-    })
-    .select('*')
-    .single()
+  const id = await upsertDocumentoProjetoRpc({
+    p_id: null,
+    p_projeto_id: projetoId,
+    p_nome: nome.trim(),
+    p_tipo: tipo.trim() || 'Outro',
+    p_status: 'aguardando',
+    p_critico: false,
+    p_disciplina: null,
+  })
 
-  if (error) throw new Error(error.message)
-  return data as DocumentoProjeto
+  return fetchDocumentoProjetoById(id)
 }
 
 export async function softDeleteDocumento(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('documentos_projeto')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-
-  if (error) throw new Error(error.message)
+  await deleteDocumentoProjetoRpc(id)
 }
 
 export function countCriticosAguardando(documentos: DocumentoProjeto[]): number {

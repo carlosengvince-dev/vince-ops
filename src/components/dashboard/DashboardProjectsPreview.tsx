@@ -3,6 +3,7 @@ import { getDisciplineProgressMap } from '../../lib/projectProgress'
 import { formatHorasMinutos } from '../../lib/projectHoras'
 import type { ProjetoListItem } from '../../types/project-create'
 import type { TarefaProgressRow } from '../../hooks/useProjects'
+import { SkeletonProjectCardGrid } from '../ui/Skeleton'
 import './DashboardProjectsPreview.css'
 
 interface DashboardProjectsPreviewProps {
@@ -44,8 +45,8 @@ export function DashboardProjectsPreview({
         </Link>
       </div>
 
-      {loading ? (
-        <p className="dashboard-projects-preview__status">Carregando…</p>
+      {loading && projetos.length === 0 ? (
+        <SkeletonProjectCardGrid count={3} />
       ) : preview.length === 0 ? (
         <p className="dashboard-projects-preview__status">Nenhum projeto em andamento.</p>
       ) : (

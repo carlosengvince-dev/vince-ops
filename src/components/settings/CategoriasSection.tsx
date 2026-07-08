@@ -1,42 +1,75 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useToast } from '../../hooks/useToast'
 import {
-  fetchCategoriasDisciplina,
-  saveCategoriasDisciplina,
-} from '../../lib/configuracoes'
+  createCategoria,
+  deleteCategoria,
+  fetchCategoriasConfig,
+  renameCategoria,
+  upsertCategoriaConfig,
+  type CategoriaConfig,
+  type RenameCategoriaEscopo,
+} from '../../lib/categoriaConfig'
 import {
   countTarefasAtivasInCategoria,
   countTemplatesInCategoria,
-  renameCategoriaInTarefasAtivas,
-  renameCategoriaInTemplates,
 } from '../../lib/templatesChecklist'
+import { getActiveDisciplinaCodigos } from '../../lib/disciplinaConfig'
 import type { Disciplina } from '../../types'
+import { Button } from '../ui/Button'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import { DisciplinaTabs } from '../ui/DisciplinaTabs'
-import { SortableStringList } from './SortableStringList'
+import { Input } from '../ui/Input'
+import { Modal } from '../ui/Modal'
+import './CategoriasSection.css'
 import './SettingsSubsection.css'
 
-interface RenamePrompt {
-  oldName: string
-  newName: string
-  templateCount: number
-  tarefaCount: number
+function cloneCategorias(rows: CategoriaConfig[]): CategoriaConfig[] {
+  return rows.map((c) => ({ ...c }))
+}
+
+function reorderCategorias(
+  rows: CategoriaConfig[],
+  from: number,
+  to: number,
+): CategoriaConfig[] {
+  if (to < 0 || to >= rows.length || from === to) return rows
+  const next = [...rows]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next.map((c, idx) => ({ ...c, ordem: idx }))
 }
 
 export function CategoriasSection() {
-  const { profile } = useAuth()
-  const [disciplina, setDisciplina] = useState<Disciplina>('HID')
-  const [items, setItems] = useState<string[]>([])
+  const { showToast } = useToast()
+  const [disciplina, setDisciplina] = useState<Disciplina>(
+    () => getActiveDisciplinaCodigos()[0] ?? 'HID',
+  )
+  const [categorias, setCategorias] = useState<CategoriaConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [renamePrompt, setRenamePrompt] = useState<RenamePrompt | null>(null)
+  const [novaNome, setNovaNome] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [reordering, setReordering] = useState(false)
+
+  const [renameTarget, setRenameTarget] = useState<CategoriaConfig | null>(null)
+  const [renameNome, setRenameNome] = useState('')
+  const [renameEscopo, setRenameEscopo] = useState<RenameCategoriaEscopo>('config_templates')
+  const [renamePreview, setRenamePreview] = useState<{ templates: number; tarefas: number } | null>(
+    null,
+  )
+  const [renaming, setRenaming] = useState(false)
+
+  const [deleteTarget, setDeleteTarget] = useState<CategoriaConfig | null>(null)
+  const [deleteTemplateCount, setDeleteTemplateCount] = useState(0)
+  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      setItems(await fetchCategoriasDisciplina(disciplina))
+      const rows = await fetchCategoriasConfig(disciplina, { skipCache: true })
+      setCategorias(cloneCategorias(rows))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar categorias')
     } finally {
@@ -48,54 +81,140 @@ export function CategoriasSection() {
     void load()
   }, [load])
 
-  async function persist(next: string[]) {
-    setSaving(true)
+  const sorted = useMemo(
+    () => [...categorias].sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, 'pt-BR')),
+    [categorias],
+  )
+
+  async function handleAdd() {
+    const nome = novaNome.trim()
+    if (!nome) {
+      showToast('Informe o nome da categoria', 'error')
+      return
+    }
+    setAdding(true)
     setError(null)
     try {
-      await saveCategoriasDisciplina(disciplina, next, profile?.id)
-      setItems(next)
+      await createCategoria(disciplina, nome)
+      setNovaNome('')
+      await load()
+      showToast('Categoria criada')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao salvar')
+      const message = e instanceof Error ? e.message : 'Erro ao criar categoria'
+      setError(message)
+      showToast(message, 'error')
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function handleMove(id: string, direction: 'up' | 'down') {
+    const index = sorted.findIndex((c) => c.id === id)
+    if (index < 0) return
+    const nextIndex = direction === 'up' ? index - 1 : index + 1
+    if (nextIndex < 0 || nextIndex >= sorted.length) return
+
+    const reordered = reorderCategorias(sorted, index, nextIndex)
+    setCategorias(reordered)
+    setReordering(true)
+    setError(null)
+    try {
+      const previousOrdem = new Map(sorted.map((c) => [c.id, c.ordem]))
+      await Promise.all(
+        reordered
+          .filter((c) => previousOrdem.get(c.id) !== c.ordem)
+          .map((c) =>
+            upsertCategoriaConfig({
+              p_id: c.id,
+              p_disciplina: c.disciplina,
+              p_nome: c.nome,
+              p_ordem: c.ordem,
+              p_ativo: c.ativo,
+            }),
+          ),
+      )
+      await load()
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Erro ao reordenar'
+      setError(message)
+      showToast(message, 'error')
       await load()
     } finally {
-      setSaving(false)
+      setReordering(false)
     }
   }
 
-  async function handleRename(oldName: string, newName: string) {
-    if (oldName === newName) return
+  async function openRename(cat: CategoriaConfig) {
+    setRenameTarget(cat)
+    setRenameNome(cat.nome)
+    setRenameEscopo('config_templates')
+    setRenamePreview(null)
     try {
-      const [templateCount, tarefaCount] = await Promise.all([
-        countTemplatesInCategoria(disciplina, oldName),
-        countTarefasAtivasInCategoria(disciplina, oldName),
+      const [templates, tarefas] = await Promise.all([
+        countTemplatesInCategoria(disciplina, cat.nome),
+        countTarefasAtivasInCategoria(disciplina, cat.nome),
       ])
-      if (templateCount > 0 || tarefaCount > 0) {
-        setRenamePrompt({ oldName, newName, templateCount, tarefaCount })
-        return
-      }
-      const next = items.map((c) => (c === oldName ? newName : c))
-      await persist(next)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao renomear')
+      setRenamePreview({ templates, tarefas })
+    } catch {
+      setRenamePreview({ templates: 0, tarefas: 0 })
     }
   }
 
-  async function applyRename(updateProjects: boolean) {
-    if (!renamePrompt) return
-    const { oldName, newName } = renamePrompt
-    setSaving(true)
+  async function handleRenameConfirm() {
+    if (!renameTarget) return
+    const nome = renameNome.trim()
+    if (!nome) {
+      showToast('Informe o novo nome', 'error')
+      return
+    }
+    if (nome === renameTarget.nome) {
+      setRenameTarget(null)
+      return
+    }
+
+    setRenaming(true)
+    setError(null)
     try {
-      await renameCategoriaInTemplates(disciplina, oldName, newName)
-      if (updateProjects) {
-        await renameCategoriaInTarefasAtivas(disciplina, oldName, newName)
-      }
-      const next = items.map((c) => (c === oldName ? newName : c))
-      await persist(next)
-      setRenamePrompt(null)
+      const result = await renameCategoria(renameTarget.id, nome, renameEscopo)
+      setRenameTarget(null)
+      await load()
+      showToast(
+        `Renomeada. ${result.templates_afetados} templates e ${result.tarefas_afetadas} tarefas atualizados.`,
+      )
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao renomear categoria')
+      const message = e instanceof Error ? e.message : 'Erro ao renomear'
+      setError(message)
+      showToast(message, 'error')
     } finally {
-      setSaving(false)
+      setRenaming(false)
+    }
+  }
+
+  async function openDelete(cat: CategoriaConfig) {
+    setDeleteTarget(cat)
+    try {
+      const count = await countTemplatesInCategoria(disciplina, cat.nome)
+      setDeleteTemplateCount(count)
+    } catch {
+      setDeleteTemplateCount(0)
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await deleteCategoria(deleteTarget.id, disciplina)
+      setDeleteTarget(null)
+      await load()
+      showToast('Categoria excluída')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Erro ao excluir'
+      setError(message)
+      showToast(message, 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -105,7 +224,8 @@ export function CategoriasSection() {
         <div>
           <h2 className="settings-subsection__title">Categorias</h2>
           <p className="settings-subsection__hint">
-            Lista de categorias por disciplina, usadas nos templates e checklists.
+            Fonte de verdade dos nomes usados em templates e checklists. Cada alteração é salva na
+            hora.
           </p>
         </div>
       </header>
@@ -116,28 +236,169 @@ export function CategoriasSection() {
       {loading ? <p className="settings-subsection__status">Carregando…</p> : null}
 
       {!loading ? (
-        <SortableStringList
-          items={items}
-          onChange={(next) => void persist(next)}
-          onRename={(oldValue, newValue) => void handleRename(oldValue, newValue)}
-          addLabel="Nova categoria"
-        />
+        <>
+          <ul className="categorias-section__list">
+            {sorted.map((cat, index) => (
+              <li key={cat.id} className="categorias-section__row">
+                <div className="categorias-section__order">
+                  <button
+                    type="button"
+                    className="categorias-section__order-btn"
+                    aria-label="Mover para cima"
+                    disabled={reordering || index === 0}
+                    onClick={() => void handleMove(cat.id, 'up')}
+                  >
+                    <ChevronUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="categorias-section__order-btn"
+                    aria-label="Mover para baixo"
+                    disabled={reordering || index >= sorted.length - 1}
+                    onClick={() => void handleMove(cat.id, 'down')}
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
+
+                <span className="categorias-section__nome">{cat.nome}</span>
+
+                {cat.sistema ? (
+                  <span className="categorias-section__badge">Padrão</span>
+                ) : (
+                  <span className="categorias-section__badge-spacer" />
+                )}
+
+                <button
+                  type="button"
+                  className="categorias-section__icon-btn"
+                  aria-label={`Renomear ${cat.nome}`}
+                  onClick={() => void openRename(cat)}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="categorias-section__icon-btn categorias-section__icon-btn--danger"
+                  aria-label={`Excluir ${cat.nome}`}
+                  onClick={() => void openDelete(cat)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {sorted.length === 0 ? (
+            <p className="settings-subsection__status">Nenhuma categoria nesta disciplina.</p>
+          ) : null}
+
+          <div className="categorias-section__add">
+            <Input
+              label="Nova categoria"
+              value={novaNome}
+              onChange={(e) => setNovaNome(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void handleAdd()
+                }
+              }}
+              placeholder="Nome da categoria"
+            />
+            <Button type="button" disabled={adding || !novaNome.trim()} onClick={() => void handleAdd()}>
+              <Plus size={16} />
+              {adding ? 'Adicionando…' : 'Adicionar'}
+            </Button>
+          </div>
+        </>
       ) : null}
-      {saving ? <p className="settings-subsection__status">Salvando…</p> : null}
+
+      <Modal
+        open={renameTarget != null}
+        title="Renomear categoria"
+        onClose={() => {
+          if (!renaming) setRenameTarget(null)
+        }}
+      >
+        <div className="categorias-section__rename">
+          <Input
+            label="Novo nome"
+            value={renameNome}
+            onChange={(e) => setRenameNome(e.target.value)}
+          />
+
+          {renamePreview ? (
+            <p className="categorias-section__preview">
+              Impacto atual: {renamePreview.templates} template(s) e {renamePreview.tarefas}{' '}
+              tarefa(s) em projetos ativos usam &quot;{renameTarget?.nome}&quot;.
+            </p>
+          ) : null}
+
+          <fieldset className="categorias-section__radio-group">
+            <legend>Escopo da renomeação</legend>
+            <label className="categorias-section__radio">
+              <input
+                type="radio"
+                name="rename-escopo"
+                checked={renameEscopo === 'config'}
+                onChange={() => setRenameEscopo('config')}
+              />
+              Só a lista de categorias
+            </label>
+            <label className="categorias-section__radio">
+              <input
+                type="radio"
+                name="rename-escopo"
+                checked={renameEscopo === 'config_templates'}
+                onChange={() => setRenameEscopo('config_templates')}
+              />
+              Lista + templates
+            </label>
+            <label className="categorias-section__radio">
+              <input
+                type="radio"
+                name="rename-escopo"
+                checked={renameEscopo === 'tudo'}
+                onChange={() => setRenameEscopo('tudo')}
+              />
+              Lista + templates + tarefas de projetos ativos
+            </label>
+          </fieldset>
+
+          <div className="settings-subsection__actions">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={renaming}
+              onClick={() => setRenameTarget(null)}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" disabled={renaming} onClick={() => void handleRenameConfirm()}>
+              {renaming ? 'Renomeando…' : 'Renomear'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmModal
-        isOpen={renamePrompt != null}
-        title="Renomear categoria"
+        isOpen={deleteTarget != null}
+        title="Excluir categoria"
         message={
-          renamePrompt
-            ? `${renamePrompt.templateCount} tarefa(s) de template serão afetadas${renamePrompt.tarefaCount > 0 ? ` e ${renamePrompt.tarefaCount} tarefa(s) em projetos ativos` : ''}. Deseja atualizar também as tarefas de projetos em andamento?`
+          deleteTarget
+            ? deleteTemplateCount > 0
+              ? `${deleteTemplateCount} tarefa(s) de template usam esta categoria. Elas manterão o nome atual como texto.`
+              : `Excluir a categoria "${deleteTarget.nome}"?`
             : ''
         }
-        confirmLabel="Template + projetos"
-        cancelLabel="Só o template"
-        loading={saving}
-        onConfirm={() => void applyRename(true)}
-        onCancel={() => void applyRename(false)}
+        confirmLabel="Excluir"
+        variant="danger"
+        loading={deleting}
+        onConfirm={() => void handleDeleteConfirm()}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null)
+        }}
       />
     </section>
   )

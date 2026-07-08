@@ -1,3 +1,4 @@
+import { fetchPendenciaById, upsertPendenciaRpc } from './pendenciaRpc'
 import { supabase } from './supabase'
 import type {
   PendenciaExterna,
@@ -88,24 +89,20 @@ export async function fetchProjectPendencias(projetoId: string): Promise<Pendenc
 }
 
 export async function createPendencia(input: CreatePendenciaInput): Promise<PendenciaExterna> {
-  const { data, error } = await supabase
-    .from('pendencias_externas')
-    .insert({
-      projeto_id: input.projetoId,
-      orgao: input.orgao,
-      tipo: input.tipo,
-      descricao: input.descricao.trim(),
-      prazo: input.prazo || null,
-      data_recebimento: input.dataRecebimento || null,
-      tarefas_vinculadas: input.tarefasVinculadas,
-      criado_por: input.criadoPor,
-      status: 'aberta',
-    })
-    .select('*, profiles!criado_por(nome)')
-    .single()
+  const id = await upsertPendenciaRpc({
+    p_id: null,
+    p_projeto_id: input.projetoId,
+    p_orgao: input.orgao,
+    p_tipo: input.tipo,
+    p_descricao: input.descricao.trim(),
+    p_prazo: input.prazo || null,
+    p_data_recebimento: input.dataRecebimento || null,
+    p_tarefas_vinculadas: input.tarefasVinculadas,
+    p_criado_por: input.criadoPor,
+    p_status: 'aberta',
+  })
 
-  if (error) throw new Error(error.message)
-
+  const data = await fetchPendenciaById(id)
   return mapPendenciaRow(data as Record<string, unknown>)
 }
 
@@ -122,23 +119,17 @@ export async function updatePendencia(
   pendenciaId: string,
   input: UpdatePendenciaInput,
 ): Promise<PendenciaExterna> {
-  const { data, error } = await supabase
-    .from('pendencias_externas')
-    .update({
-      orgao: input.orgao,
-      tipo: input.tipo,
-      descricao: input.descricao.trim(),
-      prazo: input.prazo || null,
-      data_recebimento: input.dataRecebimento || null,
-      tarefas_vinculadas: input.tarefasVinculadas,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', pendenciaId)
-    .select('*, profiles!criado_por(nome)')
-    .single()
+  const id = await upsertPendenciaRpc({
+    p_id: pendenciaId,
+    p_orgao: input.orgao,
+    p_tipo: input.tipo,
+    p_descricao: input.descricao.trim(),
+    p_prazo: input.prazo || null,
+    p_data_recebimento: input.dataRecebimento || null,
+    p_tarefas_vinculadas: input.tarefasVinculadas,
+  })
 
-  if (error) throw new Error(error.message)
-
+  const data = await fetchPendenciaById(id)
   return mapPendenciaRow(data as Record<string, unknown>)
 }
 
@@ -146,13 +137,8 @@ export async function updatePendenciaStatus(
   pendenciaId: string,
   status: PendenciaStatus,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('pendencias_externas')
-    .update({
-      status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', pendenciaId)
-
-  if (error) throw new Error(error.message)
+  await upsertPendenciaRpc({
+    p_id: pendenciaId,
+    p_status: status,
+  })
 }

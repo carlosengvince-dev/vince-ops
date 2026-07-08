@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import {
-  DISCIPLINA_LABELS,
   formatNumeroProjeto,
   PROJETO_STATUS_LABELS,
 } from '../../lib/constants'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { getPhaseLabel } from '../../lib/faseConfig'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import { getDisciplineProgressMap } from '../../lib/projectProgress'
 import type { ProjetoListItem } from '../../types/project-create'
 import './ProjectCard.css'
@@ -43,8 +44,11 @@ export function ProjectCard({ projeto, tarefas }: ProjectCardProps) {
           return (
             <div key={disc} className="project-card__disc">
               <div className="project-card__disc-head">
-                <span className={`project-card__disc-badge ${discToneClasses(disc)}`}>
-                  {DISCIPLINA_LABELS[disc]}
+                <span
+                  className={`project-card__disc-badge ${discToneClasses(disc)}`}
+                  style={discToneStyle(disc)}
+                >
+                  {getDisciplinaLabel(disc)}
                 </span>
                 <span className="project-card__disc-pct">{prog.percent}%</span>
               </div>
@@ -54,7 +58,7 @@ export function ProjectCard({ projeto, tarefas }: ProjectCardProps) {
                   style={{ width: `${prog.percent}%` }}
                 />
               </div>
-              <div className="project-card__dots" title={`Fase: ${prog.faseAtual}`}>
+              <div className="project-card__dots" title={`Fase: ${getPhaseLabel(prog.faseAtual, disc)}`}>
                 {prog.phaseDots.map(({ fase, status }) => (
                   <span
                     key={fase}

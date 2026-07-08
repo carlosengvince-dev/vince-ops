@@ -1,4 +1,5 @@
 import { PROJETO_STATUS_LABELS } from './constants'
+import { buildEstruturaFasesSnapshot, type EstruturaFasesSnapshot } from './faseConfig'
 import { patchProjetoRpc } from './projetoRpc'
 import { supabase } from './supabase'
 import type { Disciplina, ProjetoStatus, TarefaStatus } from '../types'
@@ -33,6 +34,7 @@ export interface SnapshotFechamento {
   }
   membros: SnapshotFechamentoMembro[]
   desvio_prazo_dias: number | null
+  estrutura_fases?: EstruturaFasesSnapshot
 }
 
 export function getProjectStatusConfirmKind(
@@ -100,6 +102,7 @@ export async function buildProjectSnapshot(
   projetoId: string,
   dataConclusao: string,
   dataEntregaPrevista: string | null,
+  disciplinas: Disciplina[],
 ): Promise<SnapshotFechamento> {
   const [tempoRes, tarefasRes, revisoesRes] = await Promise.all([
     supabase
@@ -183,6 +186,8 @@ export async function buildProjectSnapshot(
     .map((m) => ({ nome: m.nome, horas: roundHoras(m.segundos) }))
     .sort((a, b) => b.horas - a.horas)
 
+  const estrutura_fases = await buildEstruturaFasesSnapshot(projetoId, disciplinas)
+
   return {
     data_conclusao: dataConclusao,
     horas_totais,
@@ -198,6 +203,7 @@ export async function buildProjectSnapshot(
     },
     membros,
     desvio_prazo_dias: computeDesvioPrazoDias(dataConclusao, dataEntregaPrevista),
+    estrutura_fases,
   }
 }
 
@@ -208,6 +214,17 @@ export interface UpdateProjetoStatusResult {
   snapshot_fechamento: Record<string, unknown> | null
 }
 
+async function fetchProjetoDisciplinas(projetoId: string): Promise<Disciplina[]> {
+  const { data, error } = await supabase
+    .from('projetos')
+    .select('disciplinas')
+    .eq('id', projetoId)
+    .single()
+
+  if (error) throw new Error(error.message)
+  return (data.disciplinas as Disciplina[]) ?? []
+}
+
 export async function updateProjetoStatus(
   projetoId: string,
   newStatus: ProjetoStatus,
@@ -216,30 +233,40 @@ export async function updateProjetoStatus(
     currentDataConclusaoReal?: string | null
     currentSnapshotFechamento?: Record<string, unknown> | null
     dataEntregaPrevista?: string | null
+    disciplinas?: Disciplina[]
   } = {},
 ): Promise<UpdateProjetoStatusResult> {
-  const patch: Parameters<typeof patchProjetoRpc>[1] = {
-    p_status: newStatus,
+  const patch: Record<string, unknown> = {
+    status: newStatus,
   }
 
   if (newStatus === 'cancelado') {
     const trimmed = opts.justificativa?.trim()
     if (!trimmed) throw new Error('Justificativa é obrigatória para cancelar o projeto.')
-    patch.p_justificativa_cancelamento = trimmed
+    patch.justificativa_cancelamento = trimmed
+
+    const existing = opts.currentSnapshotFechamento ?? {}
+    if (!existing.estrutura_fases) {
+      const disciplinas = opts.disciplinas ?? (await fetchProjetoDisciplinas(projetoId))
+      const estrutura_fases = await buildEstruturaFasesSnapshot(projetoId, disciplinas)
+      patch.snapshot_fechamento = { ...existing, estrutura_fases }
+    }
   }
 
   if (newStatus === 'concluido') {
     const dataConclusao = opts.currentDataConclusaoReal ?? todayIsoDate()
     if (!opts.currentDataConclusaoReal) {
-      patch.p_data_conclusao_real = dataConclusao
+      patch.data_conclusao_real = dataConclusao
     }
 
     const existing = opts.currentSnapshotFechamento
     if (!existing || isSnapshotPlaceholder(existing)) {
-      patch.p_snapshot_fechamento = (await buildProjectSnapshot(
+      const disciplinas = opts.disciplinas ?? (await fetchProjetoDisciplinas(projetoId))
+      patch.snapshot_fechamento = (await buildProjectSnapshot(
         projetoId,
         dataConclusao,
         opts.dataEntregaPrevista ?? null,
+        disciplinas,
       )) as unknown as Record<string, unknown>
     }
   }

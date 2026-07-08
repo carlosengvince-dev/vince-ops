@@ -5,7 +5,7 @@ export type Papel =
   | 'administrador'
   | 'proprietario'
 
-export type Disciplina = 'HID' | 'PPCI' | 'SPK'
+export type Disciplina = string
 
 export type Metodologia = '2D' | '3D' | 'BIM'
 

@@ -1,8 +1,17 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Navigate,
+  Route,
+  RouterProvider,
+} from 'react-router-dom'
 import { MainLayout } from './components/layout/MainLayout'
 import { PermittedRoute } from './components/layout/PermittedRoute'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
+import { FasesConfigProvider } from './contexts/FasesConfigContext'
+import { DisciplinasConfigProvider } from './contexts/DisciplinasConfigContext'
 import { AuthProvider } from './hooks/useAuth'
+import { ToastProvider } from './hooks/useToast'
 import { TimerProvider } from './hooks/useTimer'
 import Clients from './pages/Clients'
 import CreateProject from './pages/CreateProject'
@@ -17,6 +26,7 @@ import SettingsPapeis from './pages/settings/SettingsPapeis'
 import SettingsUsers from './pages/settings/SettingsUsers'
 import { SettingsTemplatesLayout } from './pages/settings/SettingsTemplatesLayout'
 import { SettingsSistemaLayout } from './pages/settings/SettingsSistemaLayout'
+import SettingsTemplatesDisciplinas from './pages/settings/SettingsTemplatesDisciplinas'
 import SettingsTemplatesChecklist from './pages/settings/SettingsTemplatesChecklist'
 import SettingsTemplatesCategorias from './pages/settings/SettingsTemplatesCategorias'
 import SettingsTemplatesFases from './pages/settings/SettingsTemplatesFases'
@@ -25,8 +35,8 @@ import SettingsSistemaTiposEdificacao from './pages/settings/SettingsSistemaTipo
 import SettingsSistemaCamposProjeto from './pages/settings/SettingsSistemaCamposProjeto'
 
 function AppRoutes() {
-  return (
-    <Routes>
+  return createRoutesFromElements(
+    <>
       <Route path="/login" element={<Login />} />
 
       <Route
@@ -111,7 +121,8 @@ function AppRoutes() {
               </PermittedRoute>
             }
           >
-            <Route index element={<Navigate to="checklist" replace />} />
+            <Route index element={<Navigate to="disciplinas" replace />} />
+            <Route path="disciplinas" element={<SettingsTemplatesDisciplinas />} />
             <Route path="checklist" element={<SettingsTemplatesChecklist />} />
             <Route path="categorias" element={<SettingsTemplatesCategorias />} />
             <Route path="fases" element={<SettingsTemplatesFases />} />
@@ -142,18 +153,24 @@ function AppRoutes() {
       <Route path="registros" element={<Navigate to="/projetos" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </>,
   )
 }
+
+const router = createBrowserRouter(AppRoutes())
 
 export default function App() {
   return (
     <AuthProvider>
-      <TimerProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TimerProvider>
+      <DisciplinasConfigProvider>
+        <FasesConfigProvider>
+          <TimerProvider>
+            <ToastProvider>
+              <RouterProvider router={router} />
+            </ToastProvider>
+          </TimerProvider>
+        </FasesConfigProvider>
+      </DisciplinasConfigProvider>
     </AuthProvider>
   )
 }

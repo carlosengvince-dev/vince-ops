@@ -1,6 +1,13 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { getFaseAtual, PHASE_SEQUENCES } from '../lib/constants'
+import { getFaseAtual } from '../lib/constants'
+import {
+  buildProjetoFaseOverrideMap,
+  getActivePhaseSequenceForProjeto,
+  getFrozenPhaseSequence,
+  type EstruturaFasesSnapshot,
+  type ProjetoFaseOverride,
+} from '../lib/faseConfig'
 import type { ProjectMainTab } from '../components/projects/ProjectDetailTabs'
 import type { Disciplina, Fase, Projeto } from '../types'
 
@@ -12,7 +19,7 @@ const VALID_TABS = new Set<ProjectMainTab>([
   'atividade',
 ])
 
-const VALID_DISCIPLINAS = new Set<Disciplina>(['HID', 'PPCI', 'SPK'])
+import { getActiveDisciplinaCodigos } from '../lib/disciplinaConfig'
 
 function parseTab(value: string | null): ProjectMainTab {
   if (value && VALID_TABS.has(value as ProjectMainTab)) {
@@ -26,25 +33,44 @@ function parseDisciplina(
   disciplinas: Disciplina[],
 ): Disciplina | null {
   if (!disciplinas.length) return null
-  if (value && VALID_DISCIPLINAS.has(value as Disciplina) && disciplinas.includes(value as Disciplina)) {
-    return value as Disciplina
+  const valid = new Set(getActiveDisciplinaCodigos())
+  if (value && valid.has(value) && disciplinas.includes(value)) {
+    return value
   }
   return disciplinas[0] ?? null
+}
+
+function getPhaseSequenceForNavigation(
+  disciplina: Disciplina,
+  projetoFaseOverrides: ProjetoFaseOverride[],
+  estruturaFases: EstruturaFasesSnapshot | null,
+): Fase[] {
+  if (estruturaFases) {
+    return getFrozenPhaseSequence(disciplina, estruturaFases)
+  }
+  const overrideMap = buildProjetoFaseOverrideMap(projetoFaseOverrides)
+  return getActivePhaseSequenceForProjeto(disciplina, overrideMap)
 }
 
 function parseFase(
   value: string | null,
   disciplina: Disciplina,
   projeto: Projeto,
+  projetoFaseOverrides: ProjetoFaseOverride[],
+  estruturaFases: EstruturaFasesSnapshot | null,
 ): Fase {
-  const fases = PHASE_SEQUENCES[disciplina] as readonly Fase[]
+  const fases = getPhaseSequenceForNavigation(disciplina, projetoFaseOverrides, estruturaFases)
   if (value && fases.includes(value as Fase)) {
     return value as Fase
   }
-  return getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplina)
+  return getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplina, fases)
 }
 
-export function useProjectDetailNavigation(projeto: Projeto | undefined) {
+export function useProjectDetailNavigation(
+  projeto: Projeto | undefined,
+  projetoFaseOverrides: ProjetoFaseOverride[] = [],
+  estruturaFases: EstruturaFasesSnapshot | null = null,
+) {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const mainTab = parseTab(searchParams.get('aba'))
@@ -56,8 +82,8 @@ export function useProjectDetailNavigation(projeto: Projeto | undefined) {
 
   const faseAtiva = useMemo(() => {
     if (!projeto || !disciplinaAtiva) return null
-    return parseFase(searchParams.get('fase'), disciplinaAtiva, projeto)
-  }, [projeto, disciplinaAtiva, searchParams])
+    return parseFase(searchParams.get('fase'), disciplinaAtiva, projeto, projetoFaseOverrides, estruturaFases)
+  }, [projeto, disciplinaAtiva, projetoFaseOverrides, estruturaFases, searchParams])
 
   const expandedRevisaoId = searchParams.get('rev')
   const expandedPendenciaId = searchParams.get('pend')
@@ -93,13 +119,15 @@ export function useProjectDetailNavigation(projeto: Projeto | undefined) {
   const setDisciplinaAtiva = useCallback(
     (disciplina: Disciplina) => {
       if (!projeto) return
+      const sequence = getPhaseSequenceForNavigation(disciplina, projetoFaseOverrides, estruturaFases)
       const fase = getFaseAtual(
         projeto.fases_atuais as Record<string, unknown>,
         disciplina,
+        sequence,
       )
       patchParams({ disc: disciplina, fase, aba: 'checklist' })
     },
-    [patchParams, projeto],
+    [patchParams, projeto, projetoFaseOverrides, estruturaFases],
   )
 
   const setFaseAtiva = useCallback(

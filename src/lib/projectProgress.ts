@@ -1,8 +1,13 @@
 import {
   getFaseAtual,
   getFaseIndex,
-  PHASE_SEQUENCES,
 } from './constants'
+import {
+  buildProjetoFaseOverrideMap,
+  getActivePhaseSequenceForProjeto,
+  getPhaseSequence,
+  type ProjetoFaseOverride,
+} from './faseConfig'
 import type { Disciplina, Fase, ProjetoStatus, TarefaStatus, FasesAtuais } from '../types'
 import type { ProjetoListItem } from '../types/project-create'
 
@@ -16,16 +21,30 @@ export interface DisciplineProgress {
 
 const DONE_TASK_STATUSES: TarefaStatus[] = ['concluido', 'nao_aplica']
 
+function getSequenceForProgress(
+  disciplina: Disciplina,
+  projetoFaseOverrides?: ProjetoFaseOverride[],
+): readonly Fase[] {
+  if (projetoFaseOverrides && projetoFaseOverrides.length > 0) {
+    const overrideMap = buildProjetoFaseOverrideMap(projetoFaseOverrides)
+    return getActivePhaseSequenceForProjeto(disciplina, overrideMap)
+  }
+  return getPhaseSequence(disciplina)
+}
+
 export function calcDisciplineProgress(
   projetoId: string,
   disciplina: Disciplina,
   fasesAtuais: FasesAtuais,
   tarefas: { projeto_id: string; disciplina: string; fase: string; status: string }[],
+  projetoFaseOverrides?: ProjetoFaseOverride[],
 ): number {
-  const faseAtual = getFaseAtual(fasesAtuais as Record<string, unknown>, disciplina)
-  const fases = PHASE_SEQUENCES[disciplina]
-  const idx = getFaseIndex(disciplina, faseAtual)
+  const fases = getSequenceForProgress(disciplina, projetoFaseOverrides)
+  const faseAtual = getFaseAtual(fasesAtuais as Record<string, unknown>, disciplina, fases)
+  const idx = getFaseIndex(disciplina, faseAtual, fases)
   if (idx < 0) return 0
+
+  const activePhaseSet = new Set(fases)
 
   let total = 0
   let done = 0
@@ -33,7 +52,11 @@ export function calcDisciplineProgress(
   for (let i = 0; i <= idx; i++) {
     const fase = fases[i]
     const phaseTasks = tarefas.filter(
-      (t) => t.projeto_id === projetoId && t.disciplina === disciplina && t.fase === fase,
+      (t) =>
+        t.projeto_id === projetoId &&
+        t.disciplina === disciplina &&
+        t.fase === fase &&
+        activePhaseSet.has(fase),
     )
     total += phaseTasks.length
     done += phaseTasks.filter((t) =>
@@ -48,10 +71,11 @@ export function calcDisciplineProgress(
 export function getPhaseDots(
   disciplina: Disciplina,
   fasesAtuais: FasesAtuais,
+  projetoFaseOverrides?: ProjetoFaseOverride[],
 ): { fase: Fase; status: PhaseDotStatus }[] {
-  const faseAtual = getFaseAtual(fasesAtuais as Record<string, unknown>, disciplina)
-  const fases = PHASE_SEQUENCES[disciplina]
-  const currentIdx = getFaseIndex(disciplina, faseAtual)
+  const fases = getSequenceForProgress(disciplina, projetoFaseOverrides)
+  const faseAtual = getFaseAtual(fasesAtuais as Record<string, unknown>, disciplina, fases)
+  const currentIdx = getFaseIndex(disciplina, faseAtual, fases)
 
   return fases.map((fase, idx) => {
     let status: PhaseDotStatus = 'future'
@@ -64,14 +88,25 @@ export function getPhaseDots(
 export function getDisciplineProgressMap(
   projeto: ProjetoListItem,
   tarefas: { projeto_id: string; disciplina: string; fase: string; status: string }[],
+  projetoFaseOverrides?: ProjetoFaseOverride[],
 ): Record<Disciplina, DisciplineProgress> {
   const result = {} as Record<Disciplina, DisciplineProgress>
 
   for (const disciplina of projeto.disciplinas) {
     result[disciplina] = {
-      percent: calcDisciplineProgress(projeto.id, disciplina, projeto.fases_atuais, tarefas),
-      faseAtual: getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplina),
-      phaseDots: getPhaseDots(disciplina, projeto.fases_atuais),
+      percent: calcDisciplineProgress(
+        projeto.id,
+        disciplina,
+        projeto.fases_atuais,
+        tarefas,
+        projetoFaseOverrides,
+      ),
+      faseAtual: getFaseAtual(
+        projeto.fases_atuais as Record<string, unknown>,
+        disciplina,
+        getSequenceForProgress(disciplina, projetoFaseOverrides),
+      ),
+      phaseDots: getPhaseDots(disciplina, projeto.fases_atuais, projetoFaseOverrides),
     }
   }
 

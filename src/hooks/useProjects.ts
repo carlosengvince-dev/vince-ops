@@ -90,32 +90,64 @@ export interface TarefaProgressRow {
   status: string
 }
 
-const EMPTY_HORAS_MES_DISCIPLINA: HorasMesPorDisciplina = { HID: 0, PPCI: 0 }
+const EMPTY_HORAS_MES_DISCIPLINA: HorasMesPorDisciplina = {}
+
+interface DashboardCache {
+  ativos: ProjetoListItem[]
+  suspensos: ProjetoListItem[]
+  tarefasProgress: TarefaProgressRow[]
+  metrics: DashboardMetrics
+  horasPorMes: HorasPorMesItem[]
+  horasMesPorDisciplina: HorasMesPorDisciplina
+  horasPorProjeto: Record<string, number>
+  tarefasPorStatus: TarefasPorStatusCounts
+  tarefasHoje: TarefaHojeItem[]
+  calendarProjects: CalendarProjectDates[]
+}
+
+let dashboardCache: DashboardCache | null = null
 
 export function useProjects() {
-  const [ativos, setAtivos] = useState<ProjetoListItem[]>([])
-  const [suspensos, setSuspensos] = useState<ProjetoListItem[]>([])
-  const [tarefasProgress, setTarefasProgress] = useState<TarefaProgressRow[]>([])
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    projetosAtivos: 0,
-    tarefasAbertas: 0,
-    horasMesSegundos: 0,
-    projetosConcluidos: 0,
-  })
-  const [horasPorMes, setHorasPorMes] = useState<HorasPorMesItem[]>(buildLast6MonthKeys)
-  const [horasMesPorDisciplina, setHorasMesPorDisciplina] =
-    useState<HorasMesPorDisciplina>(EMPTY_HORAS_MES_DISCIPLINA)
-  const [horasPorProjeto, setHorasPorProjeto] = useState<Record<string, number>>({})
-  const [tarefasPorStatus, setTarefasPorStatus] = useState<TarefasPorStatusCounts>(EMPTY_TAREFAS_STATUS)
-  const [tarefasHoje, setTarefasHoje] = useState<TarefaHojeItem[]>([])
-  const [calendarProjects, setCalendarProjects] = useState<CalendarProjectDates[]>([])
-  const [loading, setLoading] = useState(true)
+  const [ativos, setAtivos] = useState<ProjetoListItem[]>(() => dashboardCache?.ativos ?? [])
+  const [suspensos, setSuspensos] = useState<ProjetoListItem[]>(() => dashboardCache?.suspensos ?? [])
+  const [tarefasProgress, setTarefasProgress] = useState<TarefaProgressRow[]>(
+    () => dashboardCache?.tarefasProgress ?? [],
+  )
+  const [metrics, setMetrics] = useState<DashboardMetrics>(
+    () =>
+      dashboardCache?.metrics ?? {
+        projetosAtivos: 0,
+        tarefasAbertas: 0,
+        horasMesSegundos: 0,
+        projetosConcluidos: 0,
+      },
+  )
+  const [horasPorMes, setHorasPorMes] = useState<HorasPorMesItem[]>(
+    () => dashboardCache?.horasPorMes ?? buildLast6MonthKeys(),
+  )
+  const [horasMesPorDisciplina, setHorasMesPorDisciplina] = useState<HorasMesPorDisciplina>(
+    () => dashboardCache?.horasMesPorDisciplina ?? EMPTY_HORAS_MES_DISCIPLINA,
+  )
+  const [horasPorProjeto, setHorasPorProjeto] = useState<Record<string, number>>(
+    () => dashboardCache?.horasPorProjeto ?? {},
+  )
+  const [tarefasPorStatus, setTarefasPorStatus] = useState<TarefasPorStatusCounts>(
+    () => dashboardCache?.tarefasPorStatus ?? EMPTY_TAREFAS_STATUS,
+  )
+  const [tarefasHoje, setTarefasHoje] = useState<TarefaHojeItem[]>(
+    () => dashboardCache?.tarefasHoje ?? [],
+  )
+  const [calendarProjects, setCalendarProjects] = useState<CalendarProjectDates[]>(
+    () => dashboardCache?.calendarProjects ?? [],
+  )
+  const [initialLoading, setInitialLoading] = useState(() => dashboardCache === null)
   const [error, setError] = useState<string | null>(null)
   const [horasChartVersion, setHorasChartVersion] = useState(getHorasChartVersion)
   const horasChartSkipRef = useRef(true)
 
   const fetchDashboard = useCallback(async () => {
-    setLoading(true)
+    const isFirstLoad = dashboardCache === null
+    if (isFirstLoad) setInitialLoading(true)
     setError(null)
 
     const now = new Date()
@@ -187,17 +219,24 @@ export function useProjects() {
 
     if (ativosRes.error || suspensosRes.error) {
       setError(ativosRes.error?.message ?? suspensosRes.error?.message ?? 'Erro ao carregar projetos')
-      setLoading(false)
+      if (isFirstLoad) setInitialLoading(false)
       return
     }
 
-    setAtivos((ativosRes.data ?? []).map((r) => mapProjetoRow(r as Record<string, unknown>)))
-    setSuspensos((suspensosRes.data ?? []).map((r) => mapProjetoRow(r as Record<string, unknown>)))
+    const nextAtivos = (ativosRes.data ?? []).map((r) => mapProjetoRow(r as Record<string, unknown>))
+    const nextSuspensos = (suspensosRes.data ?? []).map((r) =>
+      mapProjetoRow(r as Record<string, unknown>),
+    )
+    setAtivos(nextAtivos)
+    setSuspensos(nextSuspensos)
 
     const projectIds = [
       ...(ativosRes.data ?? []).map((r) => (r as { id: string }).id),
       ...(suspensosRes.data ?? []).map((r) => (r as { id: string }).id),
     ]
+
+    let nextTarefasProgress: TarefaProgressRow[] = []
+    let nextHorasPorProjeto: Record<string, number> = {}
 
     if (projectIds.length > 0) {
       const [tarefasData, horasProjetoData] = await Promise.all([
@@ -209,14 +248,17 @@ export function useProjects() {
         fetchHorasPorProjetos(projectIds),
       ])
 
-      setTarefasProgress((tarefasData.data ?? []) as TarefaProgressRow[])
-      setHorasPorProjeto(horasProjetoData)
+      nextTarefasProgress = (tarefasData.data ?? []) as TarefaProgressRow[]
+      nextHorasPorProjeto = horasProjetoData
+      setTarefasProgress(nextTarefasProgress)
+      setHorasPorProjeto(nextHorasPorProjeto)
     } else {
       setTarefasProgress([])
       setHorasPorProjeto({})
     }
 
     let horasMesSegundos = 0
+    let nextHorasMesPorDisciplina = EMPTY_HORAS_MES_DISCIPLINA
     if (!horasRes.error && horasRes.data) {
       for (const reg of horasRes.data) {
         if (reg.duracao_segundos != null) {
@@ -225,7 +267,8 @@ export function useProjects() {
           horasMesSegundos += Math.floor((Date.now() - new Date(reg.inicio).getTime()) / 1000)
         }
       }
-      setHorasMesPorDisciplina(aggregateHorasMesPorDisciplina(horasRes.data, todayStart))
+      nextHorasMesPorDisciplina = aggregateHorasMesPorDisciplina(horasRes.data, todayStart)
+      setHorasMesPorDisciplina(nextHorasMesPorDisciplina)
     } else {
       setHorasMesPorDisciplina(EMPTY_HORAS_MES_DISCIPLINA)
     }
@@ -258,9 +301,8 @@ export function useProjects() {
     }
     setTarefasPorStatus(statusCounts)
 
-    if (!tarefasHojeRes.error && tarefasHojeRes.data) {
-      setTarefasHoje(
-        tarefasHojeRes.data.map((row) => {
+    const nextTarefasHoje = !tarefasHojeRes.error && tarefasHojeRes.data
+      ? tarefasHojeRes.data.map((row) => {
           const r = row as Record<string, unknown>
           const projeto = r.projetos as { codigo: string } | null
           const responsavel = r.profiles as { nome: string } | null
@@ -272,31 +314,40 @@ export function useProjects() {
             responsavel_nome: responsavel?.nome ?? null,
             status: r.status as TarefaHojeItem['status'],
           }
-        }),
-      )
-    } else {
-      setTarefasHoje([])
-    }
+        })
+      : []
+    setTarefasHoje(nextTarefasHoje)
 
-    if (!calendarRes.error && calendarRes.data) {
-      setCalendarProjects(
-        calendarRes.data.map((r) => ({
+    const nextCalendarProjects = !calendarRes.error && calendarRes.data
+      ? calendarRes.data.map((r) => ({
           data_inicio: r.data_inicio,
           data_entrega_prevista: r.data_entrega_prevista,
-        })),
-      )
-    } else {
-      setCalendarProjects([])
-    }
+        }))
+      : []
+    setCalendarProjects(nextCalendarProjects)
 
-    setMetrics({
+    const nextMetrics = {
       projetosAtivos: ativosRes.data?.length ?? 0,
       tarefasAbertas: tarefasRes.count ?? 0,
       horasMesSegundos,
       projetosConcluidos: concluidosRes.count ?? 0,
-    })
+    }
+    setMetrics(nextMetrics)
 
-    setLoading(false)
+    dashboardCache = {
+      ativos: nextAtivos,
+      suspensos: nextSuspensos,
+      tarefasProgress: nextTarefasProgress,
+      metrics: nextMetrics,
+      horasPorMes: monthBuckets,
+      horasMesPorDisciplina: nextHorasMesPorDisciplina,
+      horasPorProjeto: nextHorasPorProjeto,
+      tarefasPorStatus: statusCounts,
+      tarefasHoje: nextTarefasHoje,
+      calendarProjects: nextCalendarProjects,
+    }
+
+    setInitialLoading(false)
   }, [])
 
   useEffect(() => {
@@ -380,7 +431,7 @@ export function useProjects() {
 
   const reactivateProject = useCallback(
     async (id: string): Promise<void> => {
-      await patchProjetoRpc(id, { p_status: 'ativo' })
+      await patchProjetoRpc(id, { status: 'ativo' })
       await fetchDashboard()
     },
     [fetchDashboard],
@@ -397,7 +448,8 @@ export function useProjects() {
     tarefasPorStatus,
     tarefasHoje,
     calendarProjects,
-    loading,
+    loading: initialLoading,
+    initialLoading,
     error,
     horasChartVersion,
     refresh: fetchDashboard,

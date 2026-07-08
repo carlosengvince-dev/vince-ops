@@ -1,3 +1,5 @@
+import { fetchRevisaoById, upsertRevisaoRpc } from './revisaoRpc'
+import { upsertPendenciaRpc } from './pendenciaRpc'
 import { supabase } from './supabase'
 import { insertTarefasRpc, type TarefaInsertRow } from './tarefaRpc'
 import type { TemplateChecklist } from '../types'
@@ -187,22 +189,18 @@ function customToRevisionTarefaRow(
 export async function createRevisao(
   input: CreateRevisaoInput,
 ): Promise<{ revisao: Revisao; tarefas: Tarefa[] }> {
-  const { data: revisaoRow, error: revisaoError } = await supabase
-    .from('revisoes')
-    .insert({
-      projeto_id: input.projetoId,
-      numero: input.numero.trim(),
-      disciplina: input.disciplina,
-      origem: input.origem,
-      descricao: input.descricao.trim() || null,
-      status: 'aberta',
-      criado_por: input.criadoPor,
-    })
-    .select('*, profiles!criado_por(nome)')
-    .single()
+  const revisaoId = await upsertRevisaoRpc({
+    p_id: null,
+    p_projeto_id: input.projetoId,
+    p_numero: input.numero.trim(),
+    p_disciplina: input.disciplina,
+    p_origem: input.origem,
+    p_descricao: input.descricao.trim() || null,
+    p_status: 'aberta',
+    p_criado_por: input.criadoPor,
+  })
 
-  if (revisaoError) throw new Error(revisaoError.message)
-
+  const revisaoRow = await fetchRevisaoById(revisaoId)
   const revisao = mapRevisaoRow(revisaoRow as Record<string, unknown>)
   const templateMap = new Map(input.templates.map((t) => [t.id, t]))
   const selectedTemplates = input.templateIds
@@ -229,15 +227,10 @@ export async function createRevisao(
   }
 
   if (input.pendenciaId) {
-    const { error: pendenciaError } = await supabase
-      .from('pendencias_externas')
-      .update({
-        revisao_gerada_id: revisao.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', input.pendenciaId)
-
-    if (pendenciaError) throw new Error(pendenciaError.message)
+    await upsertPendenciaRpc({
+      p_id: input.pendenciaId,
+      p_revisao_gerada_id: revisao.id,
+    })
   }
 
   return { revisao, tarefas: insertedTarefas }
@@ -245,13 +238,9 @@ export async function createRevisao(
 
 export async function completeRevisao(revisaoId: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10)
-  const { error } = await supabase
-    .from('revisoes')
-    .update({
-      status: 'concluida',
-      data_conclusao: today,
-    })
-    .eq('id', revisaoId)
-
-  if (error) throw new Error(error.message)
+  await upsertRevisaoRpc({
+    p_id: revisaoId,
+    p_status: 'concluida',
+    p_data_conclusao: today,
+  })
 }

@@ -1,13 +1,43 @@
 import {
-  DISCIPLINA_LABELS,
   getFaseAtual,
-  PHASE_LABELS,
-  PHASE_SEQUENCES,
 } from '../../lib/constants'
+import { useDisciplinaLabel } from '../../contexts/DisciplinasConfigContext'
+import {
+  buildProjetoFaseOverrideMap,
+  getActivePhasesForProjeto,
+  getFrozenPhasesForDisciplina,
+  type EstruturaFasesSnapshot,
+  type ProjetoFaseOverride,
+} from '../../lib/faseConfig'
 import { calcPhaseProgress } from '../../lib/projectTasks'
 import type { Disciplina, Fase, FasesAtuais, Tarefa } from '../../types'
 import { disciplinaTabClass } from '../ui/DisciplinaTabs'
+import { disciplinaTabStyle } from '../../lib/disciplinaTokens'
 import './PhaseSidebar.css'
+
+function DisciplinaTabButton({
+  codigo,
+  isActive,
+  onSelect,
+}: {
+  codigo: Disciplina
+  isActive: boolean
+  onSelect: (d: Disciplina) => void
+}) {
+  const label = useDisciplinaLabel(codigo)
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isActive}
+      className={disciplinaTabClass(codigo, isActive)}
+      style={disciplinaTabStyle(codigo, isActive)}
+      onClick={() => onSelect(codigo)}
+    >
+      {label}
+    </button>
+  )
+}
 
 interface PhaseSidebarProps {
   disciplinas: Disciplina[]
@@ -15,6 +45,8 @@ interface PhaseSidebarProps {
   faseAtiva: Fase
   fasesAtuais: FasesAtuais
   tarefas: Tarefa[]
+  projetoFaseOverrides?: ProjetoFaseOverride[]
+  estruturaFases?: EstruturaFasesSnapshot | null
   onDisciplinaChange: (d: Disciplina) => void
   onFaseChange: (f: Fase) => void
 }
@@ -25,11 +57,22 @@ export function PhaseSidebar({
   faseAtiva,
   fasesAtuais,
   tarefas,
+  projetoFaseOverrides = [],
+  estruturaFases = null,
   onDisciplinaChange,
   onFaseChange,
 }: PhaseSidebarProps) {
-  const faseOficial = getFaseAtual(fasesAtuais as Record<string, unknown>, disciplinaAtiva)
-  const fases = PHASE_SEQUENCES[disciplinaAtiva]
+  const disciplinaAtivaLabel = useDisciplinaLabel(disciplinaAtiva)
+  const overrideMap = buildProjetoFaseOverrideMap(projetoFaseOverrides)
+  const activePhases = estruturaFases
+    ? getFrozenPhasesForDisciplina(disciplinaAtiva, estruturaFases)
+    : getActivePhasesForProjeto(disciplinaAtiva, overrideMap)
+  const activeSequence = activePhases.map((f) => f.codigo)
+  const faseOficial = getFaseAtual(
+    fasesAtuais as Record<string, unknown>,
+    disciplinaAtiva,
+    activeSequence,
+  )
 
   return (
     <nav className="phase-sidebar" aria-label="Navegação de fases">
@@ -38,33 +81,25 @@ export function PhaseSidebar({
           {disciplinas.map((d) => {
             const isActive = d === disciplinaAtiva
             return (
-              <button
-                key={d}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={disciplinaTabClass(d, isActive)}
-                onClick={() => onDisciplinaChange(d)}
-              >
-                {DISCIPLINA_LABELS[d]}
-              </button>
+              <DisciplinaTabButton key={d} codigo={d} isActive={isActive} onSelect={onDisciplinaChange} />
             )
           })}
         </div>
       ) : null}
 
       <p className="phase-sidebar__title">
-        {DISCIPLINA_LABELS[disciplinaAtiva]} — Fases
+        {disciplinaAtivaLabel} — Fases
       </p>
 
       <ul className="phase-sidebar__list">
-        {fases.map((fase) => {
+        {activePhases.map((faseConfig) => {
+          const fase = faseConfig.codigo
           const isActive = fase === faseAtiva
           const isOfficial = fase === faseOficial
           const progress = calcPhaseProgress(tarefas, disciplinaAtiva, fase)
 
           return (
-            <li key={fase}>
+            <li key={faseConfig.id}>
               <button
                 type="button"
                 className={[
@@ -76,7 +111,9 @@ export function PhaseSidebar({
                   .join(' ')}
                 onClick={() => onFaseChange(fase)}
               >
-                <span className="phase-sidebar__item-label">{PHASE_LABELS[fase]}</span>
+                <span className="phase-sidebar__item-label">
+                  {faseConfig.label}
+                </span>
                 <span className="phase-sidebar__item-badge">{progress}%</span>
                 {isOfficial ? (
                   <span className="phase-sidebar__item-tag">atual</span>

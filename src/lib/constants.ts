@@ -5,6 +5,12 @@ import type {
   Papel,
   Tarefa,
 } from '../types'
+import {
+  getFaseAtualFromSequence,
+  getFaseIndexInSequence,
+  getNextFaseInSequence,
+  getPhaseSequence,
+} from './faseConfig'
 
 export const PHASE_SEQUENCES = {
   HID: ['PRE_INFO', 'INFO_GERAL', 'EP', 'PP', 'AP', 'PROTOCOLO_EMASA', 'EX', 'ENTREGA'],
@@ -25,7 +31,7 @@ export const PHASE_LABELS: Record<Fase, string> = {
   ENTREGA: 'Entrega',
 }
 
-export const DISCIPLINA_LABELS: Record<Disciplina, string> = {
+export const DISCIPLINA_LABELS: Record<string, string> = {
   HID: 'Hidrossanitário',
   PPCI: 'PPCI',
   SPK: 'SPK',
@@ -172,35 +178,41 @@ export function formatNumeroProjeto(numeroSequencial: number, ano = new Date().g
   return `VNC-${ano}-${numeroSequencial.toString().padStart(3, '0')}`
 }
 
-export function getFaseIndex(disciplina: Disciplina, fase: Fase): number {
-  const sequencia: readonly Fase[] = PHASE_SEQUENCES[disciplina]
-  return sequencia.indexOf(fase)
+export function getFaseIndex(
+  disciplina: Disciplina,
+  fase: Fase,
+  sequence?: readonly Fase[],
+): number {
+  const sequencia = sequence ?? getPhaseSequence(disciplina)
+  return getFaseIndexInSequence(sequencia, fase)
 }
 
-export function getFaseAtual(fasesAtuais: Record<string, unknown>, disciplina: Disciplina): Fase {
-  const fase = fasesAtuais[disciplina]
-  if (typeof fase === 'string') {
-    return fase as Fase
-  }
-  const sequencia = PHASE_SEQUENCES[disciplina]
-  return sequencia[0]
+export function getFaseAtual(
+  fasesAtuais: Record<string, unknown>,
+  disciplina: Disciplina,
+  sequence?: readonly Fase[],
+): Fase {
+  const sequencia = sequence ?? getPhaseSequence(disciplina)
+  return getFaseAtualFromSequence(fasesAtuais, disciplina, sequencia)
 }
 
-export function getNextFase(disciplina: Disciplina, faseAtual: Fase): Fase | null {
-  const fases: readonly Fase[] = PHASE_SEQUENCES[disciplina]
-  const idx = fases.indexOf(faseAtual)
-  if (idx < 0 || idx >= fases.length - 1) {
-    return null
-  }
-  return fases[idx + 1]
+export function getNextFase(
+  disciplina: Disciplina,
+  faseAtual: Fase,
+  sequence?: readonly Fase[],
+): Fase | null {
+  const fases = sequence ?? getPhaseSequence(disciplina)
+  return getNextFaseInSequence(fases, faseAtual)
 }
 
 export function canAdvancePhase(
   disciplina: Disciplina,
   faseAtual: Fase,
   tarefas: Tarefa[],
+  sequence?: readonly Fase[],
+  activePhaseSet?: Set<Fase>,
 ): CanAdvancePhaseResult {
-  const fases: readonly Fase[] = PHASE_SEQUENCES[disciplina]
+  const fases: readonly Fase[] = sequence ?? getPhaseSequence(disciplina)
   const idx = fases.indexOf(faseAtual)
 
   if (idx < 0) {
@@ -217,7 +229,8 @@ export function canAdvancePhase(
       t.fase === faseAtual &&
       t.revisao_id == null &&
       t.criticidade === 'critico' &&
-      t.deleted_at === null,
+      t.deleted_at === null &&
+      (!activePhaseSet || activePhaseSet.has(t.fase as Fase)),
   )
 
   let pendentes: Tarefa[]

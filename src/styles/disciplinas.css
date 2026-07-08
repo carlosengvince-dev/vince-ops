@@ -26,3 +26,7 @@
   color: var(--disc-text);
   border-color: var(--disc-border);
 }
+
+.disc-tone--custom {
+  border: 1px solid currentColor;
+}

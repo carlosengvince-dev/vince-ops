@@ -16,7 +16,7 @@ import {
   loadMeaningfulModalState,
 } from '../../lib/modalDraftUtils'
 import { useDebouncedModalPersistence } from '../../hooks/useDebouncedModalPersistence'
-import { DISCIPLINA_LABELS } from '../../lib/constants'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
 import { fetchActiveTemplates } from '../../lib/projects'
 import { Button } from '../ui/Button'
 import { ConfirmModal } from '../ui/ConfirmModal'
@@ -294,7 +294,7 @@ export function CreateRevisaoModal({
                 <span
                   className={`create-revisao-modal__disciplina ${disciplinaTabClass(disciplinaAtiva, true)}`}
                 >
-                  {DISCIPLINA_LABELS[disciplinaAtiva]}
+                  {getDisciplinaLabel(disciplinaAtiva)}
                 </span>
               </div>
 

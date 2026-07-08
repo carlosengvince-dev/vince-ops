@@ -1,7 +1,9 @@
+import { insertDocumentosProjetoRpc } from './documentoProjetoRpc'
 import { supabase } from './supabase'
 import { projectRowToRpcParams, upsertProjetoRpc } from './projetoRpc'
 import { insertTarefasRpc, type TarefaInsertRow } from './tarefaRpc'
-import { FASES_COM_CHECKLIST, PHASE_SEQUENCES } from './constants'
+import { FASES_COM_CHECKLIST } from './constants'
+import { getPhaseSequence } from './faseConfig'
 import { fetchDefaultDocumentosPadrao } from './documentosProjeto'
 import type {
   ChecklistSelectionState,
@@ -33,7 +35,7 @@ export function templateAppliesToMetodologia(
 }
 
 export function getFasesAnteriores(disciplina: Disciplina, faseEntrada: Fase): Fase[] {
-  const sequencia: readonly Fase[] = PHASE_SEQUENCES[disciplina]
+  const sequencia: readonly Fase[] = getPhaseSequence(disciplina)
   const idx = sequencia.indexOf(faseEntrada)
   if (idx <= 0) return []
   return sequencia.slice(0, idx) as Fase[]
@@ -175,16 +177,13 @@ function templateToTarefaRow(template: TemplateChecklist, projetoId: string): Ta
 async function insertDefaultDocumentos(projetoId: string) {
   const defaults = await fetchDefaultDocumentosPadrao()
   const rows = defaults.map((doc) => ({
-    projeto_id: projetoId,
-    disciplina: null,
     nome: doc.nome,
     tipo: doc.tipo,
     critico: doc.critico,
-    status: 'aguardando' as const,
+    disciplina: null,
   }))
 
-  const { error } = await supabase.from('documentos_projeto').insert(rows)
-  if (error) throw new Error(error.message)
+  await insertDocumentosProjetoRpc(projetoId, rows)
 }
 
 async function copyTemplatesToTarefas(

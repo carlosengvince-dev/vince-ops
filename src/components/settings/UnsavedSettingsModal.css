@@ -1,0 +1,40 @@
+.unsaved-settings-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.unsaved-settings-modal__btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.unsaved-settings-modal__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.unsaved-settings-modal__btn--primary {
+  background-color: #0b4ea2;
+  border-color: #0b4ea2;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.unsaved-settings-modal__btn--primary:hover:not(:disabled) {
+  background-color: var(--vince-blue-dark);
+  border-color: var(--vince-blue-dark);
+}
+
+.unsaved-settings-modal__btn--danger {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}

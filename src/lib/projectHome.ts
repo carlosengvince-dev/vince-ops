@@ -79,7 +79,7 @@ export async function updateProjetoMetadataKey(
     [key]: value.trim() || null,
   }
 
-  await patchProjetoRpc(projetoId, { p_metadata: next })
+  await patchProjetoRpc(projetoId, { metadata: next })
   return next
 }
 
@@ -94,7 +94,7 @@ export async function updateProjetoMetadataField(
     [field]: value.trim() || null,
   }
 
-  await patchProjetoRpc(projetoId, { p_metadata: next })
+  await patchProjetoRpc(projetoId, { metadata: next })
   return next
 }
 
@@ -105,10 +105,10 @@ export async function updateProjetoColumn(
 ): Promise<void> {
   const patch =
     field === 'endereco'
-      ? { p_endereco: value }
+      ? { endereco: value }
       : field === 'tipo_edificacao'
-        ? { p_tipo_edificacao: value }
-        : { p_cliente_id: value }
+        ? { tipo_edificacao: value }
+        : { cliente_id: value }
 
   await patchProjetoRpc(projetoId, patch)
 }

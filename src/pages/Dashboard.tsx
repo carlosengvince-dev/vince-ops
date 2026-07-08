@@ -5,15 +5,18 @@ import { DashboardHojeBar } from '../components/dashboard/DashboardHojeBar'
 import { DashboardOrgHeader } from '../components/dashboard/DashboardOrgHeader'
 import { DashboardProjectsPreview } from '../components/dashboard/DashboardProjectsPreview'
 import { PageWrapper } from '../components/layout/PageWrapper'
+import { SkeletonMetricGrid } from '../components/ui/Skeleton'
+import { useDisciplinasConfig } from '../contexts/DisciplinasConfigContext'
 import { useAuth } from '../hooks/useAuth'
 import { useProjects } from '../hooks/useProjects'
-import { formatHorasDecimalShort } from '../lib/projectHoras'
+import { formatHorasMesDisciplinaTooltip } from '../lib/projectHoras'
 import { formatElapsedTime } from '../lib/utils'
 import { sortTarefasHojeForUser } from '../types/project-create'
 import './Dashboard.css'
 
 export default function Dashboard() {
   const { profile } = useAuth()
+  const { getLabel, getActiveCodigos } = useDisciplinasConfig()
   const {
     ativos,
     tarefasProgress,
@@ -35,36 +38,43 @@ export default function Dashboard() {
   )
 
   const horasMes = formatElapsedTime(metrics.horasMesSegundos).replace(/^00:/, '')
-  const horasMesTooltip = `HID: ${formatHorasDecimalShort(horasMesPorDisciplina.HID)} | PPCI: ${formatHorasDecimalShort(horasMesPorDisciplina.PPCI)}`
+  const horasMesTooltip = useMemo(
+    () => formatHorasMesDisciplinaTooltip(horasMesPorDisciplina, getLabel, getActiveCodigos()),
+    [horasMesPorDisciplina, getLabel, getActiveCodigos],
+  )
 
   return (
     <PageWrapper>
       <div className="dashboard">
         <DashboardOrgHeader />
 
-        <DashboardHojeBar tarefas={tarefasHojeSorted} loading={loading} />
+        <DashboardHojeBar tarefas={tarefasHojeSorted} loading={loading && ativos.length === 0} />
 
-        <div className="dashboard__metrics">
-          <div className="dashboard__metric">
-            <span className="dashboard__metric-value">{metrics.projetosAtivos}</span>
-            <span className="dashboard__metric-label">Projetos ativos</span>
+        {loading ? (
+          <SkeletonMetricGrid />
+        ) : (
+          <div className="dashboard__metrics">
+            <div className="dashboard__metric">
+              <span className="dashboard__metric-value">{metrics.projetosAtivos}</span>
+              <span className="dashboard__metric-label">Projetos ativos</span>
+            </div>
+            <div className="dashboard__metric">
+              <span className="dashboard__metric-value">{metrics.tarefasAbertas}</span>
+              <span className="dashboard__metric-label">Tarefas abertas</span>
+            </div>
+            <div className="dashboard__metric dashboard__metric--has-tooltip">
+              <span className="dashboard__metric-value">{horasMes}</span>
+              <span className="dashboard__metric-label">Horas este mês</span>
+              <span className="dashboard__metric-tooltip" role="tooltip">
+                {horasMesTooltip}
+              </span>
+            </div>
+            <div className="dashboard__metric">
+              <span className="dashboard__metric-value">{metrics.projetosConcluidos}</span>
+              <span className="dashboard__metric-label">Projetos concluídos</span>
+            </div>
           </div>
-          <div className="dashboard__metric">
-            <span className="dashboard__metric-value">{metrics.tarefasAbertas}</span>
-            <span className="dashboard__metric-label">Tarefas abertas</span>
-          </div>
-          <div className="dashboard__metric dashboard__metric--has-tooltip">
-            <span className="dashboard__metric-value">{horasMes}</span>
-            <span className="dashboard__metric-label">Horas este mês</span>
-            <span className="dashboard__metric-tooltip" role="tooltip">
-              {horasMesTooltip}
-            </span>
-          </div>
-          <div className="dashboard__metric">
-            <span className="dashboard__metric-value">{metrics.projetosConcluidos}</span>
-            <span className="dashboard__metric-label">Projetos concluídos</span>
-          </div>
-        </div>
+        )}
 
         <DashboardCharts
           horasPorMes={horasPorMes}

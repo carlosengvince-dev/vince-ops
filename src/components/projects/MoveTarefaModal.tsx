@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Disciplina, Fase, Tarefa } from '../../types'
-import { PHASE_LABELS, PHASE_SEQUENCES } from '../../lib/constants'
-import { getCategoriasForPhase, NOVA_CATEGORIA_VALUE } from '../../lib/tarefaManagement'
+import { fetchCategoriaNomes } from '../../lib/categoriaConfig'
+import { getPhaseLabel, getPhaseSequence } from '../../lib/faseConfig'
+import { NOVA_CATEGORIA_VALUE } from '../../lib/tarefaManagement'
 import { clearModalState, loadModalState } from '../../lib/modalStorage'
 import { useDebouncedModalPersistence } from '../../hooks/useDebouncedModalPersistence'
 import { Button } from '../ui/Button'
@@ -32,12 +33,7 @@ function storageKeyFor(tarefaId: string): string {
   return `modal_mover_tarefa_${tarefaId}`
 }
 
-function defaultDraft(
-  _tarefa: Tarefa,
-  disciplina: Disciplina,
-  allTarefas: Tarefa[],
-  fasesDisponiveis: Fase[],
-): MoveTarefaDraft {
+function defaultDraft(configCats: string[], fasesDisponiveis: Fase[]): MoveTarefaDraft {
   const firstFase = fasesDisponiveis[0] ?? ''
   if (!firstFase) {
     return {
@@ -47,11 +43,10 @@ function defaultDraft(
       novaCategoriaText: '',
     }
   }
-  const cats = getCategoriasForPhase(allTarefas, disciplina, firstFase)
   return {
     faseDestino: firstFase,
-    categoriaDestino: cats[0] ?? '',
-    categoriaIsNew: cats.length === 0,
+    categoriaDestino: configCats[0] ?? '',
+    categoriaIsNew: configCats.length === 0,
     novaCategoriaText: '',
   }
 }
@@ -62,7 +57,6 @@ export function MoveTarefaModal({
   error = null,
   tarefa,
   disciplina,
-  allTarefas,
   onClose,
   onConfirm,
 }: MoveTarefaModalProps) {
@@ -72,17 +66,15 @@ export function MoveTarefaModal({
   const [novaCategoriaText, setNovaCategoriaText] = useState('')
   const [categoriaError, setCategoriaError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [configCategorias, setConfigCategorias] = useState<string[]>([])
   const initializedRef = useRef(false)
 
   const fasesDisponiveis =
     tarefa != null
-      ? (PHASE_SEQUENCES[disciplina] as readonly Fase[]).filter((f) => f !== tarefa.fase)
+      ? getPhaseSequence(disciplina).filter((f) => f !== tarefa.fase)
       : []
 
-  const categoriasDestino =
-    faseDestino != null && faseDestino !== ''
-      ? getCategoriasForPhase(allTarefas, disciplina, faseDestino)
-      : []
+  const categoriasDestino = configCategorias
 
   const storageKey = tarefa ? storageKeyFor(tarefa.id) : null
 
@@ -102,6 +94,21 @@ export function MoveTarefaModal({
   useDebouncedModalPersistence(storageKey, persistState, open && tarefa != null)
 
   useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void fetchCategoriaNomes(disciplina)
+      .then((names) => {
+        if (!cancelled) setConfigCategorias(names)
+      })
+      .catch(() => {
+        if (!cancelled) setConfigCategorias([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, disciplina])
+
+  useEffect(() => {
     if (!open || !tarefa) {
       initializedRef.current = false
       return
@@ -117,7 +124,7 @@ export function MoveTarefaModal({
       setCategoriaIsNew(saved.categoriaIsNew)
       setNovaCategoriaText(saved.novaCategoriaText ?? '')
     } else {
-      const draft = defaultDraft(tarefa, disciplina, allTarefas, fasesDisponiveis)
+      const draft = defaultDraft(configCategorias, fasesDisponiveis)
       setFaseDestino(draft.faseDestino)
       setCategoriaDestino(draft.categoriaDestino)
       setCategoriaIsNew(draft.categoriaIsNew)
@@ -126,15 +133,14 @@ export function MoveTarefaModal({
     setCategoriaError(null)
     setConfirmOpen(false)
     initializedRef.current = true
-  }, [open, tarefa, disciplina, allTarefas, fasesDisponiveis])
+  }, [open, tarefa, disciplina, configCategorias, fasesDisponiveis])
 
   const handleFaseChange = useCallback(
     (nextFase: Fase) => {
       setFaseDestino(nextFase)
-      const cats = getCategoriasForPhase(allTarefas, disciplina, nextFase)
-      if (cats.length > 0) {
+      if (configCategorias.length > 0) {
         setCategoriaIsNew(false)
-        setCategoriaDestino(cats[0])
+        setCategoriaDestino(configCategorias[0])
       } else {
         setCategoriaIsNew(true)
         setCategoriaDestino('')
@@ -142,7 +148,7 @@ export function MoveTarefaModal({
       setNovaCategoriaText('')
       setCategoriaError(null)
     },
-    [allTarefas, disciplina],
+    [configCategorias],
   )
 
   function handleClose() {
@@ -183,8 +189,8 @@ export function MoveTarefaModal({
 
   if (!tarefa) return null
 
-  const previewOrigem = PHASE_LABELS[tarefa.fase]
-  const previewDestino = faseDestino ? PHASE_LABELS[faseDestino] : '—'
+  const previewOrigem = getPhaseLabel(tarefa.fase, disciplina)
+  const previewDestino = faseDestino ? getPhaseLabel(faseDestino, disciplina) : '—'
 
   return (
     <>
@@ -227,7 +233,7 @@ export function MoveTarefaModal({
             >
               {fasesDisponiveis.map((f) => (
                 <option key={f} value={f}>
-                  {PHASE_LABELS[f]}
+                  {getPhaseLabel(f, disciplina)}
                 </option>
               ))}
             </select>
@@ -273,26 +279,18 @@ export function MoveTarefaModal({
               }}
             />
           </div>
-
-          {faseDestino ? (
-            <p className="move-tarefa-modal__preview">
-              A tarefa será movida de <strong>{previewOrigem}</strong> para{' '}
-              <strong>{previewDestino}</strong>
-            </p>
-          ) : null}
         </div>
       </Modal>
 
       <ConfirmModal
         isOpen={confirmOpen}
         title="Confirmar movimentação"
-        message={`A tarefa "${tarefa.nome}" será movida de ${previewOrigem} para ${previewDestino}. Deseja continuar?`}
-        confirmLabel="Mover tarefa"
+        message={`Mover "${tarefa.nome}" de ${previewOrigem} para ${previewDestino}?`}
+        confirmLabel="Mover"
         cancelLabel="Voltar"
-        variant="default"
         loading={loading}
-        onCancel={() => setConfirmOpen(false)}
         onConfirm={handleConfirmMove}
+        onCancel={() => setConfirmOpen(false)}
       />
     </>
   )

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  DISCIPLINA_LABELS,
   getFaseIndex,
-  PHASE_LABELS,
-  PHASE_SEQUENCES,
 } from '../../lib/constants'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { getPhaseLabel, getPhaseSequence } from '../../lib/faseConfig'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import {
   filterTemplatesForDisciplinaMetodologia,
   getSelectablePhases,
@@ -109,7 +108,7 @@ export function AddDisciplinaChecklistModal({
   const grouped = useMemo(() => groupByFaseCategoria(filtered), [filtered])
 
   const fasesOrdenadas = useMemo(
-    () => PHASE_SEQUENCES[disciplina].filter((f) => grouped[f as Fase]) as Fase[],
+    () => getPhaseSequence(disciplina).filter((f) => grouped[f as Fase]) as Fase[],
     [disciplina, grouped],
   )
 
@@ -158,7 +157,7 @@ export function AddDisciplinaChecklistModal({
   return (
     <Modal
       open={open}
-      title={`Importar tarefas — ${DISCIPLINA_LABELS[disciplina]}`}
+      title={`Importar tarefas — ${getDisciplinaLabel(disciplina)}`}
       onClose={() => {
         if (!loading) onClose()
       }}
@@ -180,8 +179,11 @@ export function AddDisciplinaChecklistModal({
     >
       <div className="add-disc-checklist">
         <header className="add-disc-checklist__header">
-          <span className={`step-checklist__disc-badge ${discToneClasses(disciplina)}`}>
-            {DISCIPLINA_LABELS[disciplina]}
+          <span
+            className={`step-checklist__disc-badge ${discToneClasses(disciplina)}`}
+            style={discToneStyle(disciplina)}
+          >
+            {getDisciplinaLabel(disciplina)}
           </span>
           <label className="add-disc-checklist__field">
             <span>Metodologia</span>
@@ -206,7 +208,7 @@ export function AddDisciplinaChecklistModal({
             >
               {getSelectablePhases(disciplina).map((fase) => (
                 <option key={fase} value={fase}>
-                  {PHASE_LABELS[fase]}
+                  {getPhaseLabel(fase, disciplina)}
                 </option>
               ))}
             </select>
@@ -246,7 +248,7 @@ export function AddDisciplinaChecklistModal({
 
               return (
                 <div key={fase} className="step-checklist__fase">
-                  <h3 className="step-checklist__fase-title">{PHASE_LABELS[fase]}</h3>
+                  <h3 className="step-checklist__fase-title">{getPhaseLabel(fase, disciplina)}</h3>
                   {Object.entries(categorias).map(([categoria, items]) => {
                     const sorted = [...items].sort((a, b) => a.ordem - b.ordem)
                     const categoryEnabled = sorted.every((t) => isTaskEnabled(t))

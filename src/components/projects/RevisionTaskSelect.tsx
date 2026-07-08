@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  DISCIPLINA_LABELS,
   FASES_COM_CHECKLIST,
-  PHASE_LABELS,
-  PHASE_SEQUENCES,
 } from '../../lib/constants'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { getPhaseLabel, getPhaseSequence } from '../../lib/faseConfig'
 import { fetchActiveTemplates, templateAppliesToMetodologia } from '../../lib/projects'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import type { CustomRevisionTask } from '../../lib/revisoes'
 import type { Disciplina, Fase, Metodologia, TemplateChecklist } from '../../types'
 import './StepChecklistSelect.css'
@@ -131,7 +130,7 @@ export function RevisionTaskSelect({
     return <p className="step-checklist__error">{loadError}</p>
   }
 
-  const fasesOrdenadas = PHASE_SEQUENCES[disciplina].filter((f) => grouped.has(f)) as Fase[]
+  const fasesOrdenadas = getPhaseSequence(disciplina).filter((f) => grouped.has(f)) as Fase[]
 
   return (
     <div className="revision-task-select">
@@ -146,8 +145,9 @@ export function RevisionTaskSelect({
         <header className="step-checklist__disc-header">
           <span
             className={`step-checklist__disc-badge ${discToneClasses(disciplina)}`}
+            style={discToneStyle(disciplina)}
           >
-            {DISCIPLINA_LABELS[disciplina]}
+            {getDisciplinaLabel(disciplina)}
           </span>
         </header>
 
@@ -160,7 +160,7 @@ export function RevisionTaskSelect({
 
             return (
               <div key={fase} className="step-checklist__fase">
-                <h3 className="step-checklist__fase-title">{PHASE_LABELS[fase]}</h3>
+                <h3 className="step-checklist__fase-title">{getPhaseLabel(fase, disciplina)}</h3>
 
                 {Array.from(categorias.entries()).map(([categoria, items]) => {
                   const sorted = [...items].sort((a, b) => a.ordem - b.ordem)

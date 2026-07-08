@@ -7,7 +7,8 @@ import {
   PENDENCIA_STATUS_LABELS,
 } from '../../lib/pendencias'
 import { shortTarefaNome } from '../../lib/tarefaVinculadaUtils'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import { Button } from '../ui/Button'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import './PendenciaCard.css'
@@ -160,8 +161,9 @@ export function PendenciaCard({
                       </span>
                       <span
                         className={`pendencia-card__task-chip-disc ${discToneClasses(t.disciplina)}`}
+                        style={discToneStyle(t.disciplina)}
                       >
-                        {t.disciplina}
+                        {getDisciplinaLabel(t.disciplina)}
                       </span>
                     </button>
                   ))}

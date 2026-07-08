@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ClipboardList, Send, Trash2 } from 'lucide-react'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import {
   chatDraftKey,
   type ProjectChatFeedItem,
@@ -207,6 +207,7 @@ export function ProjectChat({
                         <button
                           type="button"
                           className={`project-chat__task-badge ${discToneClasses(item.tarefa_disciplina)}`}
+                          style={discToneStyle(item.tarefa_disciplina)}
                           onClick={() =>
                             onNavigateToTask(
                               item.tarefa_disciplina as Disciplina,

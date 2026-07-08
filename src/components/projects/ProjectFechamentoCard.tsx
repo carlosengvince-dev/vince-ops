@@ -1,5 +1,5 @@
-import { DISCIPLINA_LABELS } from '../../lib/constants'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
 import {
   formatSnapshotHoras,
   type SnapshotFechamento,
@@ -37,8 +37,9 @@ export function ProjectFechamentoCard({ snapshot }: ProjectFechamentoCardProps) 
               <span
                 key={disc}
                 className={`project-fechamento__disc-badge ${discToneClasses(disc, true)}`}
+                style={discToneStyle(disc)}
               >
-                {DISCIPLINA_LABELS[disc]} · {formatSnapshotHoras(snapshot.horas_totais[disc] ?? 0)}
+                {getDisciplinaLabel(disc)} · {formatSnapshotHoras(snapshot.horas_totais[disc] ?? 0)}
               </span>
             ))}
           </div>

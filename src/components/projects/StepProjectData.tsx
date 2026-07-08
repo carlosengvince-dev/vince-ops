@@ -1,15 +1,16 @@
 import type { ModoCriacao } from '../../types'
 import type { ProjectFormData } from '../../types/project-create'
 import { useCodigoValidation } from '../../hooks/useCodigoValidation'
-import { DISCIPLINA_LABELS, PROJETO_STATUS_LABELS } from '../../lib/constants'
+import { useDisciplinasConfig } from '../../contexts/DisciplinasConfigContext'
+import { PROJETO_STATUS_LABELS } from '../../lib/constants'
 import type { Disciplina, Metodologia, ProjetoStatus } from '../../types'
 import { disciplinaTabClass } from '../ui/DisciplinaTabs'
+import { disciplinaTabStyle } from '../../lib/disciplinaTokens'
 import { ClientSelect } from '../clients/ClientSelect'
 import { Input } from '../ui/Input'
 import { Textarea } from '../ui/Textarea'
 import './StepProjectData.css'
 
-const DISCIPLINAS: Disciplina[] = ['HID', 'PPCI', 'SPK']
 const METODOLOGIAS: Metodologia[] = ['2D', '3D', 'BIM']
 
 const HISTORICO_STATUS: ProjetoStatus[] = ['concluido', 'cancelado', 'suspenso']
@@ -62,6 +63,8 @@ export function validateProjectFormStep(
 
 export function StepProjectData({ modo, form, onChange, fieldErrors }: StepProjectDataProps) {
   const codigoValidation = useCodigoValidation(form.codigo)
+  const { disciplinas: disciplinasConfig, getLabel } = useDisciplinasConfig()
+  const disciplinasAtivas = disciplinasConfig.filter((d) => d.ativo)
   const isHistorico = modo === 'historico'
 
   const codigoError =
@@ -137,24 +140,25 @@ export function StepProjectData({ modo, form, onChange, fieldErrors }: StepProje
           <p className="step-project-data__field-error">{fieldErrors.disciplinas}</p>
         ) : null}
         <div className="step-project-data__disciplinas">
-          {DISCIPLINAS.map((disc) => {
-            const active = form.disciplinas.includes(disc)
+          {disciplinasAtivas.map((disc) => {
+            const active = form.disciplinas.includes(disc.codigo)
             return (
-              <div key={disc} className="step-project-data__disc-block">
+              <div key={disc.codigo} className="step-project-data__disc-block">
                 <button
                   type="button"
-                  className={disciplinaTabClass(disc, active)}
-                  onClick={() => toggleDisciplina(disc)}
+                  className={disciplinaTabClass(disc.codigo, active)}
+                  style={disciplinaTabStyle(disc.codigo, active)}
+                  onClick={() => toggleDisciplina(disc.codigo)}
                   aria-pressed={active}
                 >
-                  {DISCIPLINA_LABELS[disc]}
+                  {getLabel(disc.codigo)}
                 </button>
                 {active ? (
                   <label className="step-project-data__metodologia">
                     <span>Metodologia</span>
                     <select
-                      value={form.metodologia[disc] ?? '2D'}
-                      onChange={(e) => setMetodologia(disc, e.target.value as Metodologia)}
+                      value={form.metodologia[disc.codigo] ?? '2D'}
+                      onChange={(e) => setMetodologia(disc.codigo, e.target.value as Metodologia)}
                     >
                       {METODOLOGIAS.map((m) => (
                         <option key={m} value={m}>

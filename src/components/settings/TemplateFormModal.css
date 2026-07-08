@@ -37,6 +37,17 @@
   color: var(--status-bloqueado-text);
 }
 
+.template-form-modal__categoria {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.template-form-modal__field-error {
+  font-size: 12px;
+  color: var(--status-bloqueado-text);
+}
+
 .template-form-modal__actions {
   display: flex;
   justify-content: flex-end;

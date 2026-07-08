@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { DISCIPLINA_LABELS } from '../../lib/constants'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
 import type { Disciplina } from '../../types'
 import './RemoveDisciplinaModal.css'
 
@@ -35,7 +35,7 @@ export function RemoveDisciplinaModal({
 
   if (!open) return null
 
-  const label = DISCIPLINA_LABELS[disciplina]
+  const label = getDisciplinaLabel(disciplina)
 
   return (
     <div

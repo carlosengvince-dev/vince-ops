@@ -100,5 +100,5 @@ export async function fetchHistoricoProjects(): Promise<HistoricoProjetoRow[]> {
 }
 
 export async function reabrirProjetoSuspenso(projetoId: string): Promise<void> {
-  await patchProjetoRpc(projetoId, { p_status: 'ativo' })
+  await patchProjetoRpc(projetoId, { status: 'ativo' })
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PHASE_LABELS } from '../../lib/constants'
+import { getPhaseLabel } from '../../lib/faseConfig'
 import type { Disciplina, Fase, Tarefa } from '../../types'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -53,8 +53,8 @@ export function PhaseAdvanceModal({
           <>
             <p className="phase-advance-modal__text">
               Existem <strong>{pendentes.length}</strong> tarefa(s) crítica(s) pendente(s) para avançar de{' '}
-              <strong>{PHASE_LABELS[faseAtual]}</strong> para{' '}
-              <strong>{PHASE_LABELS[nextFase]}</strong> ({disciplina}).
+              <strong>{getPhaseLabel(faseAtual, disciplina)}</strong> para{' '}
+              <strong>{getPhaseLabel(nextFase, disciplina)}</strong> ({disciplina}).
             </p>
             <ul className="phase-advance-modal__list">
               {pendentes.map((t) => (
@@ -73,8 +73,8 @@ export function PhaseAdvanceModal({
           </>
         ) : (
           <p className="phase-advance-modal__text">
-            Confirmar avanço de <strong>{PHASE_LABELS[faseAtual]}</strong> para{' '}
-            <strong>{PHASE_LABELS[nextFase]}</strong> ({disciplina})?
+            Confirmar avanço de <strong>{getPhaseLabel(faseAtual, disciplina)}</strong> para{' '}
+            <strong>{getPhaseLabel(nextFase, disciplina)}</strong> ({disciplina})?
           </p>
         )}
 

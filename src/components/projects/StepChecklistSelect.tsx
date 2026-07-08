@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  DISCIPLINA_LABELS,
-  FASES_COM_CHECKLIST,
-  getFaseIndex,
-  PHASE_LABELS,
-  PHASE_SEQUENCES,
-} from '../../lib/constants'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { getFaseIndex } from '../../lib/constants'
+import { getFasesComChecklist, getPhaseLabel, getPhaseSequence } from '../../lib/faseConfig'
 import { fetchActiveTemplates, templateAppliesToMetodologia } from '../../lib/projects'
 import type { ModoCriacao } from '../../types'
 import type { ChecklistSelectionState, ProjectFormData } from '../../types/project-create'
@@ -24,7 +20,7 @@ function filterTemplatesForForm(
 ): TemplateChecklist[] {
   return templates.filter((t) => {
     if (!form.disciplinas.includes(t.disciplina)) return false
-    if (!FASES_COM_CHECKLIST.includes(t.fase as Fase)) return false
+    if (!getFasesComChecklist(t.disciplina).includes(t.fase as Fase)) return false
     const met = form.metodologia[t.disciplina] ?? '2D'
     return templateAppliesToMetodologia(t, met)
   })
@@ -94,7 +90,7 @@ export function validateChecklistStep(
   if (modo === 'em_andamento') {
     for (const disciplina of form.disciplinas) {
       if (!checklist.faseEntrada[disciplina]) {
-        return `Defina a fase de entrada para ${DISCIPLINA_LABELS[disciplina]}.`
+        return `Defina a fase de entrada para ${getDisciplinaLabel(disciplina)}.`
       }
     }
     const selected = filtered.filter((t) => checklist.selectedTemplateIds.has(t.id))
@@ -232,7 +228,7 @@ export function StepChecklistSelect({
   }
 
   function getSelectablePhases(disciplina: Disciplina): Fase[] {
-    return PHASE_SEQUENCES[disciplina].filter((f) => FASES_COM_CHECKLIST.includes(f))
+    return getPhaseSequence(disciplina).filter((f) => getFasesComChecklist(disciplina).includes(f))
   }
 
   if (loading) {
@@ -274,7 +270,7 @@ export function StepChecklistSelect({
         const discGroup = grouped[disciplina]
         if (!discGroup) return null
 
-        const fasesOrdenadas = PHASE_SEQUENCES[disciplina].filter(
+        const fasesOrdenadas = getPhaseSequence(disciplina).filter(
           (f) => discGroup[f as Fase],
         ) as Fase[]
 
@@ -282,7 +278,7 @@ export function StepChecklistSelect({
           <section key={disciplina} className="step-checklist__disc">
             <header className="step-checklist__disc-header">
               <span className={`step-checklist__disc-badge ${disciplinaTabClass(disciplina, true)}`}>
-                {DISCIPLINA_LABELS[disciplina]}
+                {getDisciplinaLabel(disciplina)}
               </span>
               {modo === 'em_andamento' ? (
                 <label className="step-checklist__fase-entrada">
@@ -295,7 +291,7 @@ export function StepChecklistSelect({
                   >
                     {getSelectablePhases(disciplina).map((fase) => (
                       <option key={fase} value={fase}>
-                        {PHASE_LABELS[fase]}
+                        {getPhaseLabel(fase, disciplina)}
                       </option>
                     ))}
                   </select>
@@ -317,7 +313,7 @@ export function StepChecklistSelect({
 
               return (
                 <div key={fase} className="step-checklist__fase">
-                  <h3 className="step-checklist__fase-title">{PHASE_LABELS[fase]}</h3>
+                  <h3 className="step-checklist__fase-title">{getPhaseLabel(fase, disciplina)}</h3>
 
                   {Object.entries(categorias).map(([categoria, items]) => {
                     const sorted = [...items].sort((a, b) => a.ordem - b.ordem)

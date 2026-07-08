@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, X } from 'lucide-react'
-import { DISCIPLINA_LABELS, formatNumeroProjeto, hasPermissao } from '../../lib/constants'
-import { discToneClasses } from '../../lib/disciplinaTokens'
+import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
+import { formatNumeroProjeto, hasPermissao } from '../../lib/constants'
+import { discToneClasses, discToneStyle } from '../../lib/disciplinaTokens'
+import { useDisciplinasConfig } from '../../contexts/DisciplinasConfigContext'
 import { getDisciplinasDisponiveis, countTarefasDaDisciplina } from '../../lib/projetoDisciplinas'
+import type { FaseConfig, EstruturaFasesSnapshot, ProjetoFaseOverride } from '../../lib/faseConfig'
+import { fetchFasesConfig, getFrozenPhasesForDisciplina } from '../../lib/faseConfig'
 import { getProjectStatusConfirmKind } from '../../lib/projectStatus'
 import {
   formatProjetoHorasPorDisciplina,
@@ -25,6 +28,7 @@ import { ProjectStatusConfirmModal } from './ProjectStatusConfirmModal'
 import { ProjectStatusDropdown } from './ProjectStatusDropdown'
 import { ClientSelect } from '../clients/ClientSelect'
 import { ConfirmModal } from '../ui/ConfirmModal'
+import { Modal } from '../ui/Modal'
 import './ProjectHomePanel.css'
 
 export interface ProjectHomeCliente {
@@ -68,6 +72,15 @@ interface ProjectHomePanelProps {
   horasEstimadasPpci: number | null
   camposCustom?: CampoProjetoCustom[]
   onSaveCustomField?: (key: string, value: string) => Promise<void>
+  fasesAtuais: Record<string, unknown>
+  projetoFaseOverrides: ProjetoFaseOverride[]
+  estruturaFases?: EstruturaFasesSnapshot | null
+  onToggleProjetoFase: (params: {
+    disciplina: Disciplina
+    fase: FaseConfig
+    ativa: boolean
+    scope: 'projeto' | 'projetos_ativos'
+  }) => Promise<void>
 }
 
 type FieldType = 'text' | 'date' | 'textarea' | 'select'
@@ -116,7 +129,12 @@ export function ProjectHomePanel({
   horasEstimadasPpci,
   camposCustom = [],
   onSaveCustomField,
+  fasesAtuais,
+  projetoFaseOverrides,
+  estruturaFases = null,
+  onToggleProjetoFase,
 }: ProjectHomePanelProps) {
+  const { getLabel } = useDisciplinasConfig()
   const canEdit = !readOnly && hasPermissao(papel, 'editar_projeto')
   const canChangeStatus = canEdit
   const canManageDisciplinas = canEdit
@@ -148,6 +166,17 @@ export function ProjectHomePanel({
   const [pendingStatus, setPendingStatus] = useState<ProjetoStatus | null>(null)
   const [statusChanging, setStatusChanging] = useState(false)
   const pendingConfirmKind = pendingStatus ? getProjectStatusConfirmKind(status, pendingStatus) : null
+  const [fasesConfigByDisciplina, setFasesConfigByDisciplina] = useState<
+    Partial<Record<Disciplina, FaseConfig[]>>
+  >({})
+  const [fasesExpanded, setFasesExpanded] = useState(false)
+  const [faseToggleError, setFaseToggleError] = useState<string | null>(null)
+  const [faseToggleLoadingId, setFaseToggleLoadingId] = useState<string | null>(null)
+  const [pendingDisable, setPendingDisable] = useState<{
+    disciplina: Disciplina
+    fase: FaseConfig
+    scope: 'projeto' | 'projetos_ativos'
+  } | null>(null)
 
   const disciplinasDisponiveis = useMemo(
     () => getDisciplinasDisponiveis(disciplinas),
@@ -159,6 +188,48 @@ export function ProjectHomePanel({
     const t = window.setTimeout(() => setSavedKey(null), 2000)
     return () => window.clearTimeout(t)
   }, [savedKey])
+
+  useEffect(() => {
+    let cancelled = false
+    void Promise.all(
+      disciplinas.map(async (disciplina) => ({
+        disciplina,
+        fases: await fetchFasesConfig(disciplina, { includeInactive: false }),
+      })),
+    )
+      .then((rows) => {
+        if (cancelled) return
+        const next: Partial<Record<Disciplina, FaseConfig[]>> = {}
+        for (const row of rows) next[row.disciplina] = row.fases
+        setFasesConfigByDisciplina(next)
+      })
+      .catch(() => {
+        if (!cancelled) setFasesConfigByDisciplina({})
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [disciplinas])
+
+  const displayFasesByDisciplina = useMemo(() => {
+    if (estruturaFases) {
+      const next: Partial<Record<Disciplina, FaseConfig[]>> = {}
+      for (const disciplina of disciplinas) {
+        next[disciplina] = getFrozenPhasesForDisciplina(disciplina, estruturaFases)
+      }
+      return next
+    }
+    return fasesConfigByDisciplina
+  }, [estruturaFases, disciplinas, fasesConfigByDisciplina])
+
+  const projetoFaseOverridesMap = useMemo(() => {
+    const map = new Map<string, boolean>()
+    for (const override of projetoFaseOverrides) map.set(override.fase_config_id, override.ativa)
+    return map
+  }, [projetoFaseOverrides])
+
+  const canManageProjetoFases =
+    !readOnly && (papel === 'gestor' || papel === 'diretor_executivo')
 
   const readValue = useCallback(
     (field: FieldConfig): string => {
@@ -359,6 +430,54 @@ export function ProjectHomePanel({
     },
     [commitStatusChange, pendingStatus],
   )
+
+  const handleToggleFase = useCallback(
+    (disciplina: Disciplina, fase: FaseConfig, ativa: boolean) => {
+      setFaseToggleError(null)
+
+      if (!ativa) {
+        const faseAtualDisciplina = fasesAtuais[disciplina]
+        if (faseAtualDisciplina === fase.codigo) {
+          setFaseToggleError('Avance ou retorne a fase antes de desativá-la.')
+          return
+        }
+      }
+
+      if (ativa) {
+        setFaseToggleLoadingId(fase.id)
+        void onToggleProjetoFase({ disciplina, fase, ativa: true, scope: 'projeto' })
+          .catch((err) => {
+            setFaseToggleError(
+              err instanceof Error ? err.message : 'Erro ao reativar fase no projeto',
+            )
+          })
+          .finally(() => setFaseToggleLoadingId(null))
+        return
+      }
+
+      setPendingDisable({ disciplina, fase, scope: 'projeto' })
+    },
+    [fasesAtuais, onToggleProjetoFase],
+  )
+
+  const handleConfirmDisableFase = useCallback(async () => {
+    if (!pendingDisable) return
+    setFaseToggleLoadingId(pendingDisable.fase.id)
+    setFaseToggleError(null)
+    try {
+      await onToggleProjetoFase({
+        disciplina: pendingDisable.disciplina,
+        fase: pendingDisable.fase,
+        ativa: false,
+        scope: pendingDisable.scope,
+      })
+      setPendingDisable(null)
+    } catch (err) {
+      setFaseToggleError(err instanceof Error ? err.message : 'Erro ao desativar fase no projeto')
+    } finally {
+      setFaseToggleLoadingId(null)
+    }
+  }, [onToggleProjetoFase, pendingDisable])
 
   const empreendimentoFields: FieldConfig[] = [
     {
@@ -568,14 +687,17 @@ export function ProjectHomePanel({
                       key={d}
                       className={`project-home__disc-badge-wrap${canManageDisciplinas ? ' project-home__disc-badge-wrap--manageable' : ''}`}
                     >
-                      <span className={`project-home__disc-badge ${discToneClasses(d)}`}>
-                        {DISCIPLINA_LABELS[d]}
+                      <span
+                        className={`project-home__disc-badge ${discToneClasses(d)}`}
+                        style={discToneStyle(d)}
+                      >
+                        {getLabel(d)}
                       </span>
                       {canManageDisciplinas && disciplinas.length > 1 ? (
                         <button
                           type="button"
                           className="project-home__disc-remove"
-                          aria-label={`Remover ${DISCIPLINA_LABELS[d]}`}
+                          aria-label={`Remover ${getLabel(d)}`}
                           disabled={removePreparing || removeLoading}
                           onClick={() => void handleStartRemoveDisciplina(d)}
                         >
@@ -612,7 +734,7 @@ export function ProjectHomePanel({
                         </option>
                         {disciplinasDisponiveis.map((d) => (
                           <option key={d} value={d}>
-                            {DISCIPLINA_LABELS[d]}
+                            {getLabel(d)}
                           </option>
                         ))}
                       </select>
@@ -667,6 +789,69 @@ export function ProjectHomePanel({
             </div>
             <div className="project-home__grid">
               {renderCustomFields('projeto')}
+            </div>
+
+            <div className="project-home__fases-card">
+              <button
+                type="button"
+                className="project-home__fases-header"
+                onClick={() => setFasesExpanded((v) => !v)}
+              >
+                <span>Fases ativas</span>
+                {fasesExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              {fasesExpanded ? (
+                <div className="project-home__fases-body">
+                  {faseToggleError ? (
+                    <p className="project-home__fases-error">{faseToggleError}</p>
+                  ) : null}
+                  {disciplinas.map((disciplina) => {
+                    const fasesDisciplina = displayFasesByDisciplina[disciplina] ?? []
+                    return (
+                      <div key={disciplina} className="project-home__fases-disc">
+                        <p className="project-home__fases-disc-title">{getLabel(disciplina)}</p>
+                        <ul className="project-home__fases-list">
+                          {fasesDisciplina.map((fase) => {
+                            const overrideAtiva = estruturaFases
+                              ? undefined
+                              : projetoFaseOverridesMap.get(fase.id)
+                            const isAtiva = estruturaFases ? true : (overrideAtiva ?? true)
+                            const isCurrent = fasesAtuais[disciplina] === fase.codigo
+                            const toggleDisabled =
+                              estruturaFases != null ||
+                              fase.obrigatoria ||
+                              !canManageProjetoFases ||
+                              faseToggleLoadingId === fase.id
+
+                            return (
+                              <li key={fase.id} className="project-home__fases-item">
+                                <span className="project-home__fases-label">
+                                  {fase.label}
+                                </span>
+                                <label
+                                  className={`project-home__fases-toggle${toggleDisabled ? ' project-home__fases-toggle--disabled' : ''}`}
+                                  title={fase.obrigatoria ? 'Fase obrigatória' : undefined}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isAtiva}
+                                    disabled={toggleDisabled}
+                                    onChange={(e) => handleToggleFase(disciplina, fase, e.target.checked)}
+                                  />
+                                  {canManageProjetoFases ? (isAtiva ? 'Ativa' : 'Inativa') : 'Somente leitura'}
+                                </label>
+                                {isCurrent ? (
+                                  <span className="project-home__fases-current">fase atual</span>
+                                ) : null}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
           </HomeSection>
 
@@ -793,12 +978,12 @@ export function ProjectHomePanel({
         isOpen={confirmAddOpen && pendingAddDisciplina != null}
         title={
           pendingAddDisciplina
-            ? `Adicionar ${DISCIPLINA_LABELS[pendingAddDisciplina]}`
+            ? `Adicionar ${getLabel(pendingAddDisciplina)}`
             : 'Adicionar disciplina'
         }
         message={
           pendingAddDisciplina
-            ? `Deseja adicionar ${DISCIPLINA_LABELS[pendingAddDisciplina]} a este projeto? Em seguida você poderá selecionar as tarefas a importar.`
+            ? `Deseja adicionar ${getLabel(pendingAddDisciplina)} a este projeto? Em seguida você poderá selecionar as tarefas a importar.`
             : ''
         }
         confirmLabel="Continuar"
@@ -848,6 +1033,57 @@ export function ProjectHomePanel({
           if (!statusChanging) setPendingStatus(null)
         }}
       />
+
+      <Modal
+        open={pendingDisable != null}
+        title="Aplicar desativação"
+        onClose={() => {
+          if (!faseToggleLoadingId) setPendingDisable(null)
+        }}
+        footer={
+          <div className="project-home__fases-modal-actions">
+            <button
+              type="button"
+              className="project-home__fases-modal-cancel"
+              disabled={faseToggleLoadingId != null}
+              onClick={() => setPendingDisable(null)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="project-home__fases-modal-confirm"
+              disabled={faseToggleLoadingId != null}
+              onClick={() => void handleConfirmDisableFase()}
+            >
+              Confirmar
+            </button>
+          </div>
+        }
+      >
+        <p className="project-home__fases-modal-text">
+          As tarefas desta fase deixarão de contar no progresso e a fase não aparecerá na sequência.
+        </p>
+        <label className="project-home__fases-modal-select-wrap">
+          Aplicar a:
+          <select
+            value={pendingDisable?.scope ?? 'projeto'}
+            onChange={(e) =>
+              setPendingDisable((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      scope: e.target.value as 'projeto' | 'projetos_ativos',
+                    }
+                  : prev,
+              )
+            }
+          >
+            <option value="projeto">Só este projeto</option>
+            <option value="projetos_ativos">Todos os projetos ativos</option>
+          </select>
+        </label>
+      </Modal>
     </div>
   )
 }

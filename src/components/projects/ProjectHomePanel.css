@@ -255,6 +255,142 @@
   border: 0.5px solid var(--border);
 }
 
+.project-home__fases-card {
+  margin-top: 16px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.project-home__fases-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.project-home__fases-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 12px 12px;
+}
+
+.project-home__fases-disc-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.project-home__fases-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-home__fases-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.project-home__fases-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.project-home__fases-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.project-home__fases-toggle--disabled {
+  opacity: 0.6;
+}
+
+.project-home__fases-current {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.project-home__fases-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--status-bloqueado-text);
+}
+
+.project-home__fases-modal-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.project-home__fases-modal-select-wrap {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.project-home__fases-modal-select-wrap select {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  font-family: inherit;
+}
+
+.project-home__fases-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.project-home__fases-modal-cancel,
+.project-home__fases-modal-confirm {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.project-home__fases-modal-cancel {
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.project-home__fases-modal-confirm {
+  border: 0.5px solid #d97706;
+  background: #f59e0b;
+  color: white;
+}
+
 .project-home__protocol-block + .project-home__protocol-block {
   margin-top: 16px;
   padding-top: 16px;

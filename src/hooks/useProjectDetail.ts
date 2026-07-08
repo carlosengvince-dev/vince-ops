@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import type { ProjetoFaseOverride } from '../lib/faseConfig'
 import type { DocumentoProjeto, Papel, Projeto, Tarefa } from '../types'
 import type { ProjectHomeCliente } from '../components/projects/ProjectHomePanel'
+
+const detailCache = new Map<string, ProjectDetailData>()
 
 export interface ProjectDetailData {
   projeto: Projeto & {
@@ -10,6 +13,7 @@ export interface ProjectDetailData {
   }
   tarefas: Tarefa[]
   documentos: DocumentoProjeto[]
+  projetoFaseOverrides: ProjetoFaseOverride[]
 }
 
 type ProjetoPatch = Partial<
@@ -33,21 +37,26 @@ type ProjetoPatch = Partial<
 }
 
 export function useProjectDetail(projectId: string | undefined) {
-  const [data, setData] = useState<ProjectDetailData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<ProjectDetailData | null>(() =>
+    projectId ? (detailCache.get(projectId) ?? null) : null,
+  )
+  const [initialLoading, setInitialLoading] = useState(
+    () => (projectId ? !detailCache.has(projectId) : false),
+  )
   const [error, setError] = useState<string | null>(null)
 
   const fetchDetail = useCallback(async () => {
     if (!projectId) {
       setData(null)
-      setLoading(false)
+      setInitialLoading(false)
       return
     }
 
-    setLoading(true)
+    const hasCache = detailCache.has(projectId)
+    if (!hasCache) setInitialLoading(true)
     setError(null)
 
-    const [projetoRes, tarefasRes, documentosRes] = await Promise.all([
+    const [projetoRes, tarefasRes, documentosRes, projetoFasesRes] = await Promise.all([
       supabase
         .from('projetos')
         .select('*, clientes(nome, cnpj_cpf, contato, email)')
@@ -66,19 +75,23 @@ export function useProjectDetail(projectId: string | undefined) {
         .eq('projeto_id', projectId)
         .is('deleted_at', null)
         .order('created_at', { ascending: true }),
+      supabase
+        .from('projeto_fases')
+        .select('fase_config_id, ativa, fases_config(codigo)')
+        .eq('projeto_id', projectId),
     ])
 
     if (projetoRes.error) {
       setError(projetoRes.error.message)
-      setData(null)
-      setLoading(false)
+      if (!hasCache) setData(null)
+      setInitialLoading(false)
       return
     }
 
     if (!projetoRes.data) {
       setError('Projeto não encontrado')
-      setData(null)
-      setLoading(false)
+      if (!hasCache) setData(null)
+      setInitialLoading(false)
       return
     }
 
@@ -90,7 +103,7 @@ export function useProjectDetail(projectId: string | undefined) {
       email: string | null
     } | null
 
-    setData({
+    const nextData: ProjectDetailData = {
       projeto: {
         ...(row as unknown as Projeto),
         cliente_nome: clienteRow?.nome ?? null,
@@ -114,8 +127,20 @@ export function useProjectDetail(projectId: string | undefined) {
         }
       }),
       documentos: (documentosRes.data ?? []) as DocumentoProjeto[],
-    })
-    setLoading(false)
+      projetoFaseOverrides: (projetoFasesRes.data ?? []).map((raw) => {
+        const row = raw as Record<string, unknown>
+        const fase = row.fases_config as { codigo: string } | null
+        return {
+          fase_config_id: row.fase_config_id as string,
+          codigo: (fase?.codigo ?? '') as ProjetoFaseOverride['codigo'],
+          ativa: Boolean(row.ativa),
+        }
+      }),
+    }
+
+    detailCache.set(projectId, nextData)
+    setData(nextData)
+    setInitialLoading(false)
   }, [projectId])
 
   useEffect(() => {
@@ -248,7 +273,8 @@ export function useProjectDetail(projectId: string | undefined) {
 
   return {
     data,
-    loading,
+    loading: initialLoading,
+    initialLoading,
     error,
     refresh: fetchDetail,
     patchTarefa,

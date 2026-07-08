@@ -1,3 +1,4 @@
+import { insertLiberacaoFaseRpc } from './liberacaoFaseRpc'
 import { patchProjetoRpc } from './projetoRpc'
 import {
   fetchTarefaById,
@@ -5,7 +6,6 @@ import {
   upsertTarefaRpc,
   patchTarefaRpc,
 } from './tarefaRpc'
-import { supabase } from './supabase'
 import type { Disciplina, Fase, FasesAtuais, Tarefa, TarefaStatus } from '../types'
 
 const DONE_STATUSES: TarefaStatus[] = ['concluido', 'nao_aplica']
@@ -83,7 +83,7 @@ export async function advanceProjectPhase(
 ): Promise<FasesAtuais> {
   const updated: FasesAtuais = { ...fasesAtuais, [disciplina]: nextFase }
 
-  await patchProjetoRpc(projetoId, { p_fases_atuais: updated })
+  await patchProjetoRpc(projetoId, { fases_atuais: updated })
   return updated
 }
 
@@ -97,16 +97,14 @@ export async function liberarFaseBloqueada(
   justificativa: string,
   tarefasPendentesIds: string[],
 ): Promise<FasesAtuais> {
-  const { error: libError } = await supabase.from('liberacoes_fase').insert({
-    projeto_id: projetoId,
-    disciplina,
-    fase_liberada: faseLiberada,
-    liberado_por: liberadoPor,
-    justificativa,
-    tarefas_pendentes_ids: tarefasPendentesIds,
+  await insertLiberacaoFaseRpc({
+    p_projeto_id: projetoId,
+    p_disciplina: disciplina,
+    p_fase_liberada: faseLiberada,
+    p_liberado_por: liberadoPor,
+    p_justificativa: justificativa,
+    p_tarefas_pendentes_ids: tarefasPendentesIds,
   })
-
-  if (libError) throw new Error(libError.message)
 
   return advanceProjectPhase(projetoId, disciplina, nextFase, fasesAtuais)
 }

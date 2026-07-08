@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import './SettingsSectionPage.css'
 
 const SUBSECTIONS = [
+  { to: 'disciplinas', label: 'Disciplinas' },
   { to: 'checklist', label: 'Templates de checklist' },
   { to: 'categorias', label: 'Categorias' },
   { to: 'fases', label: 'Fases e sequências' },

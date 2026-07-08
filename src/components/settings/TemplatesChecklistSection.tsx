@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
-import { PHASE_LABELS, PHASE_SEQUENCES } from '../../lib/constants'
-import { fetchPhaseLabels, resolvePhaseLabel } from '../../lib/phaseConfig'
+import { useFasesConfig } from '../../contexts/FasesConfigContext'
+import { useToast } from '../../hooks/useToast'
+import { createCategoria, fetchCategoriaNomes } from '../../lib/categoriaConfig'
 import {
   createTemplate,
   deleteTemplate,
@@ -12,6 +13,7 @@ import {
   updateTemplate,
   type TemplateChecklistInput,
 } from '../../lib/templatesChecklist'
+import { getActiveDisciplinaCodigos } from '../../lib/disciplinaConfig'
 import type { Disciplina, Fase, TemplateChecklist } from '../../types'
 import { Button } from '../ui/Button'
 import { ConfirmModal } from '../ui/ConfirmModal'
@@ -24,39 +26,56 @@ import './TemplatesChecklistSection.css'
 import './SettingsSubsection.css'
 
 export function TemplatesChecklistSection() {
-  const [disciplina, setDisciplina] = useState<Disciplina>('HID')
+  const { showToast } = useToast()
+  const { getSequence, getLabel, loading: fasesLoading } = useFasesConfig()
+  const [disciplina, setDisciplina] = useState<Disciplina>(
+    () => getActiveDisciplinaCodigos()[0] ?? 'HID',
+  )
   const [templates, setTemplates] = useState<TemplateChecklist[]>([])
-  const [phaseLabels, setPhaseLabels] = useState<Record<string, string>>({})
+  const [categoriaNomes, setCategoriaNomes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
-  const [formContext, setFormContext] = useState<{ fase: Fase; categoria: string } | null>(null)
+  const [formContext, setFormContext] = useState<{
+    fase: Fase | null
+    categoria: string
+    pickFase: boolean
+  } | null>(null)
   const [editingTemplate, setEditingTemplate] = useState<TemplateChecklist | null>(null)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [novaCategoriaOpen, setNovaCategoriaOpen] = useState(false)
-  const [novaCategoriaFase, setNovaCategoriaFase] = useState<Fase | null>(null)
+  const [novaCategoriaFaseHint, setNovaCategoriaFaseHint] = useState<Fase | null>(null)
   const [novaCategoriaNome, setNovaCategoriaNome] = useState('')
+  const [creatingCategoria, setCreatingCategoria] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<TemplateChecklist | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [formInitialOrdem, setFormInitialOrdem] = useState(1)
+
+  const faseOrder = getSequence(disciplina)
 
   const refetchTemplates = useCallback(async () => {
     const rows = await fetchAllTemplates(disciplina)
     setTemplates(rows)
   }, [disciplina])
 
+  const refetchCategorias = useCallback(async () => {
+    const names = await fetchCategoriaNomes(disciplina)
+    setCategoriaNomes(names)
+  }, [disciplina])
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [rows, labels] = await Promise.all([
+      const [rows, names] = await Promise.all([
         fetchAllTemplates(disciplina),
-        fetchPhaseLabels(),
+        fetchCategoriaNomes(disciplina),
       ])
       setTemplates(rows)
-      setPhaseLabels(labels)
+      setCategoriaNomes(names)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar templates')
     } finally {
@@ -70,16 +89,32 @@ export function TemplatesChecklistSection() {
 
   const grouped = useMemo(() => groupTemplatesByFaseCategoria(templates), [templates])
 
-  const faseOrder = PHASE_SEQUENCES[disciplina]
+  const categoriasEmUso = useMemo(() => {
+    const set = new Set<string>()
+    for (const t of templates) {
+      if (t.categoria) set.add(t.categoria)
+    }
+    return set
+  }, [templates])
+
+  const categoriasSemTarefas = useMemo(
+    () => categoriaNomes.filter((nome) => !categoriasEmUso.has(nome)),
+    [categoriaNomes, categoriasEmUso],
+  )
 
   const groupedByFase = useMemo(() => {
     const map = new Map(grouped.map((g) => [g.fase, g]))
     return faseOrder.map((fase) => ({
       fase,
-      label: resolvePhaseLabel(fase, phaseLabels),
+      label: getLabel(fase, disciplina),
       categorias: map.get(fase)?.categorias ?? [],
     }))
-  }, [grouped, faseOrder, phaseLabels])
+  }, [disciplina, faseOrder, getLabel, grouped])
+
+  const fasesComChecklist = useMemo(
+    () => faseOrder.filter((f) => f !== 'PRE_INFO'),
+    [faseOrder],
+  )
 
   function catKey(fase: Fase, categoria: string) {
     return `${fase}::${categoria}`
@@ -95,11 +130,9 @@ export function TemplatesChecklistSection() {
     })
   }
 
-  const [formInitialOrdem, setFormInitialOrdem] = useState(1)
-
   function openCreate(fase: Fase, categoria: string) {
     setFormMode('create')
-    setFormContext({ fase, categoria })
+    setFormContext({ fase, categoria, pickFase: false })
     setEditingTemplate(null)
     setFormError(null)
     const catTemplates = templates.filter((t) => t.fase === fase && t.categoria === categoria)
@@ -108,9 +141,22 @@ export function TemplatesChecklistSection() {
     setFormOpen(true)
   }
 
+  function openCreateFromEmptyCategoria(categoria: string) {
+    setFormMode('create')
+    setFormContext({
+      fase: null,
+      categoria,
+      pickFase: true,
+    })
+    setEditingTemplate(null)
+    setFormError(null)
+    setFormInitialOrdem(1)
+    setFormOpen(true)
+  }
+
   function openEdit(template: TemplateChecklist) {
     setFormMode('edit')
-    setFormContext({ fase: template.fase, categoria: template.categoria })
+    setFormContext({ fase: template.fase, categoria: template.categoria, pickFase: false })
     setEditingTemplate(template)
     setFormError(null)
     setFormOpen(true)
@@ -118,6 +164,10 @@ export function TemplatesChecklistSection() {
 
   async function handleFormSubmit(values: TemplateFormValues) {
     if (!formContext) return
+    if (!formContext.fase) {
+      setFormError('Selecione a fase')
+      return
+    }
     setSaving(true)
     setFormError(null)
     try {
@@ -133,7 +183,7 @@ export function TemplatesChecklistSection() {
         await updateTemplate(editingTemplate.id, values)
       }
       setFormOpen(false)
-      await refetchTemplates()
+      await Promise.all([refetchTemplates(), refetchCategorias()])
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Erro ao salvar')
     } finally {
@@ -157,7 +207,7 @@ export function TemplatesChecklistSection() {
     try {
       await deleteTemplate(deleteTarget.id)
       setDeleteTarget(null)
-      await refetchTemplates()
+      await Promise.all([refetchTemplates(), refetchCategorias()])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao excluir tarefa')
     } finally {
@@ -187,11 +237,30 @@ export function TemplatesChecklistSection() {
 
   function handleNovaCategoria() {
     const nome = novaCategoriaNome.trim()
-    if (!nome || !novaCategoriaFase) return
-    setNovaCategoriaOpen(false)
-    setExpandedCats((prev) => new Set(prev).add(catKey(novaCategoriaFase, nome)))
-    openCreate(novaCategoriaFase, nome)
-    setNovaCategoriaNome('')
+    if (!nome) return
+    const faseHint = novaCategoriaFaseHint
+    void (async () => {
+      setCreatingCategoria(true)
+      setError(null)
+      try {
+        await createCategoria(disciplina, nome)
+        setNovaCategoriaOpen(false)
+        setNovaCategoriaNome('')
+        setNovaCategoriaFaseHint(null)
+        await refetchCategorias()
+        showToast('Categoria criada', 'success', {
+          label: 'Adicionar tarefa',
+          onClick: () => {
+            if (faseHint) openCreate(faseHint, nome)
+            else openCreateFromEmptyCategoria(nome)
+          },
+        })
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Erro ao criar categoria')
+      } finally {
+        setCreatingCategoria(false)
+      }
+    })()
   }
 
   return (
@@ -212,16 +281,13 @@ export function TemplatesChecklistSection() {
       />
 
       {error ? <p className="settings-subsection__error">{error}</p> : null}
-      {loading ? <p className="settings-subsection__status">Carregando…</p> : null}
+      {loading || fasesLoading ? <p className="settings-subsection__status">Carregando…</p> : null}
 
-      {!loading ? (
+      {!loading && !fasesLoading ? (
         <div className="templates-checklist__phases">
           {groupedByFase.map(({ fase, label, categorias }) => (
             <div key={fase} className="templates-checklist__phase">
-              <h3 className="templates-checklist__phase-title">
-                {label}
-                <span className="templates-checklist__phase-code">{PHASE_LABELS[fase] !== label ? fase : ''}</span>
-              </h3>
+              <h3 className="templates-checklist__phase-title">{label}</h3>
 
               {categorias.length === 0 ? (
                 <p className="templates-checklist__empty-cat">Nenhuma categoria nesta fase.</p>
@@ -268,7 +334,7 @@ export function TemplatesChecklistSection() {
                 variant="secondary"
                 className="templates-checklist__add-cat"
                 onClick={() => {
-                  setNovaCategoriaFase(fase)
+                  setNovaCategoriaFaseHint(fase)
                   setNovaCategoriaNome('')
                   setNovaCategoriaOpen(true)
                 }}
@@ -278,6 +344,30 @@ export function TemplatesChecklistSection() {
               </Button>
             </div>
           ))}
+
+          {categoriasSemTarefas.length > 0 ? (
+            <div className="templates-checklist__orphan">
+              <h3 className="templates-checklist__orphan-title">Categorias sem tarefas</h3>
+              <p className="templates-checklist__orphan-hint">
+                Categorias da disciplina ainda sem nenhuma tarefa de template.
+              </p>
+              <div className="templates-checklist__orphan-chips">
+                {categoriasSemTarefas.map((nome) => (
+                  <div key={nome} className="templates-checklist__orphan-chip">
+                    <span>{nome}</span>
+                    <button
+                      type="button"
+                      className="templates-checklist__orphan-add"
+                      onClick={() => openCreateFromEmptyCategoria(nome)}
+                    >
+                      <Plus size={12} />
+                      Adicionar tarefa
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -286,6 +376,26 @@ export function TemplatesChecklistSection() {
         mode={formMode}
         loading={saving}
         error={formError}
+        categoriaLabel={formContext?.categoria ?? null}
+        faseSelect={
+          formContext?.pickFase
+            ? {
+                options: fasesComChecklist.map((f) => ({
+                  value: f,
+                  label: getLabel(f, disciplina),
+                })),
+                value: formContext.fase ?? '',
+                onChange: (fase) => {
+                  setFormContext((prev) => (prev ? { ...prev, fase } : prev))
+                  const catTemplates = templates.filter(
+                    (t) => t.fase === fase && t.categoria === formContext.categoria,
+                  )
+                  const maxOrdem = catTemplates.reduce((m, t) => Math.max(m, t.ordem), 0)
+                  setFormInitialOrdem(maxOrdem + 1)
+                },
+              }
+            : null
+        }
         initial={
           editingTemplate
             ? {
@@ -309,7 +419,9 @@ export function TemplatesChecklistSection() {
       <Modal
         open={novaCategoriaOpen}
         title="Nova categoria"
-        onClose={() => setNovaCategoriaOpen(false)}
+        onClose={() => {
+          if (!creatingCategoria) setNovaCategoriaOpen(false)
+        }}
       >
         <div className="templates-checklist__nova-cat">
           <Input
@@ -318,11 +430,19 @@ export function TemplatesChecklistSection() {
             onChange={(e) => setNovaCategoriaNome(e.target.value)}
           />
           <div className="templates-checklist__nova-cat-actions">
-            <Button variant="secondary" onClick={() => setNovaCategoriaOpen(false)}>
+            <Button
+              variant="secondary"
+              disabled={creatingCategoria}
+              onClick={() => setNovaCategoriaOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button variant="primary" disabled={!novaCategoriaNome.trim()} onClick={handleNovaCategoria}>
-              Criar
+            <Button
+              variant="primary"
+              disabled={!novaCategoriaNome.trim() || creatingCategoria}
+              onClick={handleNovaCategoria}
+            >
+              {creatingCategoria ? 'Criando…' : 'Criar'}
             </Button>
           </div>
         </div>
