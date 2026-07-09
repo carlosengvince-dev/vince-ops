@@ -1,0 +1,16 @@
+.restore-scope-action {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.restore-scope-action:hover {
+  color: var(--text-primary);
+}

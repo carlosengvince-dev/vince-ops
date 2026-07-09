@@ -17,6 +17,15 @@ export interface RenameCategoriaResult {
   tarefas_afetadas: number
 }
 
+export interface DeleteCategoriaResult {
+  templates_excluidos: number
+}
+
+export interface DeleteCategoriaPorNomeResult {
+  categoria_removida: boolean
+  templates_excluidos: number
+}
+
 const categoriasCache = new Map<Disciplina, CategoriaConfig[]>()
 
 function mapCategoriaRow(row: Record<string, unknown>): CategoriaConfig {
@@ -151,9 +160,39 @@ export async function renameCategoria(
   }
 }
 
-export async function deleteCategoria(id: string, disciplina?: Disciplina): Promise<void> {
-  const { error } = await supabase.rpc('delete_categoria_config', { p_id: id })
+export async function deleteCategoria(
+  id: string,
+  excluirTemplates: boolean,
+  disciplina?: Disciplina,
+): Promise<DeleteCategoriaResult> {
+  const { data, error } = await supabase.rpc('delete_categoria_config', {
+    p_id: id,
+    p_excluir_templates: excluirTemplates,
+  })
   if (error) throw new Error(error.message)
   if (disciplina) invalidateCategoriasCache(disciplina)
   else invalidateCategoriasCache()
+  const result = (data ?? {}) as Record<string, unknown>
+  return {
+    templates_excluidos: Number(result.templates_excluidos ?? 0),
+  }
+}
+
+export async function deleteCategoriaPorNome(
+  disciplina: Disciplina,
+  nome: string,
+  excluirTemplates: boolean,
+): Promise<DeleteCategoriaPorNomeResult> {
+  const { data, error } = await supabase.rpc('delete_categoria_por_nome', {
+    p_disciplina: disciplina,
+    p_nome: nome.trim(),
+    p_excluir_templates: excluirTemplates,
+  })
+  if (error) throw new Error(error.message)
+  invalidateCategoriasCache(disciplina)
+  const result = (data ?? {}) as Record<string, unknown>
+  return {
+    categoria_removida: Boolean(result.categoria_removida),
+    templates_excluidos: Number(result.templates_excluidos ?? 0),
+  }
 }

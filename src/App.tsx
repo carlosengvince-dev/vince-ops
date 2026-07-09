@@ -33,6 +33,7 @@ import SettingsTemplatesFases from './pages/settings/SettingsTemplatesFases'
 import SettingsSistemaDocumentos from './pages/settings/SettingsSistemaDocumentos'
 import SettingsSistemaTiposEdificacao from './pages/settings/SettingsSistemaTiposEdificacao'
 import SettingsSistemaCamposProjeto from './pages/settings/SettingsSistemaCamposProjeto'
+import SettingsSistemaPadroesRestauracao from './pages/settings/SettingsSistemaPadroesRestauracao'
 
 function AppRoutes() {
   return createRoutesFromElements(
@@ -146,6 +147,7 @@ function AppRoutes() {
                 </PermittedRoute>
               }
             />
+            <Route path="padroes-restauracao" element={<SettingsSistemaPadroesRestauracao />} />
           </Route>
         </Route>
       </Route>

@@ -34,22 +34,102 @@
 .templates-checklist__category-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   padding: 10px 12px;
-  border: none;
   background: var(--surface-2);
+  position: relative;
+}
+
+.templates-checklist__category-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
   cursor: pointer;
   text-align: left;
+  width: 100%;
+  padding: 0;
 }
 
 .templates-checklist__cat-count {
   margin-left: auto;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.templates-checklist__outside-chip {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  background: #e5e7eb;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.templates-checklist__cat-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.templates-checklist__category:hover .templates-checklist__cat-menu-trigger,
+.templates-checklist__cat-menu-trigger:focus-visible {
+  opacity: 1;
+}
+
+.templates-checklist__cat-menu-trigger:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text);
+}
+
+.templates-checklist__cat-menu {
+  position: absolute;
+  top: 36px;
+  right: 12px;
+  z-index: 2;
+  min-width: 190px;
+  padding: 6px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.templates-checklist__cat-menu button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.templates-checklist__cat-menu button:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.templates-checklist__cat-menu-danger {
+  color: #b91c1c !important;
 }
 
 .templates-checklist__category-body {

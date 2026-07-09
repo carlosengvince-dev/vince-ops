@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Lock, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { useDisciplinasConfig } from '../../contexts/DisciplinasConfigContext'
 import { useToast } from '../../hooks/useToast'
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
@@ -23,6 +23,7 @@ import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { UnsavedSettingsModal } from './UnsavedSettingsModal'
+import { RestoreScopeAction } from './RestoreScopeAction'
 import './DisciplinasSection.css'
 import './SettingsSubsection.css'
 import './SettingsSaveBar.css'
@@ -132,18 +133,15 @@ function DisciplinaRow({
       <DisciplinaBadgePreview row={row} />
 
       <div className="disciplinas-section__meta">
-        {row.sistema ? (
-          <Lock size={14} className="disciplinas-section__lock" aria-label="Disciplina de sistema" />
-        ) : (
-          <button
-            type="button"
-            className="disciplinas-section__delete"
-            aria-label={`Excluir ${row.nome}`}
-            onClick={() => onDelete(row)}
-          >
-            <Trash2 size={15} />
-          </button>
-        )}
+        {row.sistema ? <span className="disciplinas-section__badge">Padrão</span> : null}
+        <button
+          type="button"
+          className="disciplinas-section__delete"
+          aria-label={`Excluir ${row.nome}`}
+          onClick={() => onDelete(row)}
+        >
+          <Trash2 size={15} />
+        </button>
 
         <label className="disciplinas-section__toggle">
           <input
@@ -383,6 +381,11 @@ export function DisciplinasSection() {
             muda.
           </p>
         </div>
+        <RestoreScopeAction
+          escopo="disciplinas"
+          onRestored={load}
+          onRefreshContext={refreshContext}
+        />
       </header>
 
       {error ? <p className="settings-subsection__error">{error}</p> : null}

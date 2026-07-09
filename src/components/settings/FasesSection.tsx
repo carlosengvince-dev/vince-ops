@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Lock, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { useFasesConfig } from '../../contexts/FasesConfigContext'
 import { useToast } from '../../hooks/useToast'
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
@@ -25,6 +25,7 @@ import { Input } from '../ui/Input'
 import { Modal } from '../ui/Modal'
 import { SettingsSaveBar } from './SettingsSaveBar'
 import { UnsavedSettingsModal } from './UnsavedSettingsModal'
+import { RestoreScopeAction } from './RestoreScopeAction'
 import './FasesSection.css'
 import './SettingsSubsection.css'
 import './SettingsSaveBar.css'
@@ -113,18 +114,14 @@ function FaseRow({
       />
 
       <div className="fases-section__meta">
-        {fase.sistema ? (
-          <Lock size={14} className="fases-section__lock" aria-label="Fase de sistema" />
-        ) : (
-          <button
-            type="button"
-            className="fases-section__delete"
-            aria-label={`Excluir ${fase.label}`}
-            onClick={() => onDelete(fase)}
-          >
-            <Trash2 size={15} />
-          </button>
-        )}
+        <button
+          type="button"
+          className="fases-section__delete"
+          aria-label={`Excluir ${fase.label}`}
+          onClick={() => onDelete(fase)}
+        >
+          <Trash2 size={15} />
+        </button>
 
         <label className="fases-section__toggle">
           <input
@@ -355,6 +352,7 @@ export function FasesSection() {
             continuam usando os códigos internos já gravados.
           </p>
         </div>
+        <RestoreScopeAction escopo="fases" onRestored={load} onRefreshContext={refreshContext} />
       </header>
 
       <DisciplinaTabs value={disciplina} onChange={handleDisciplinaChange} />

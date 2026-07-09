@@ -17,10 +17,10 @@ import {
 import { getActiveDisciplinaCodigos } from '../../lib/disciplinaConfig'
 import type { Disciplina } from '../../types'
 import { Button } from '../ui/Button'
-import { ConfirmModal } from '../ui/ConfirmModal'
 import { DisciplinaTabs } from '../ui/DisciplinaTabs'
 import { Input } from '../ui/Input'
-import { Modal } from '../ui/Modal'
+import { CategoriaManagementModals } from './CategoriaManagementModals'
+import { RestoreScopeAction } from './RestoreScopeAction'
 import './CategoriasSection.css'
 import './SettingsSubsection.css'
 
@@ -62,6 +62,7 @@ export function CategoriasSection() {
 
   const [deleteTarget, setDeleteTarget] = useState<CategoriaConfig | null>(null)
   const [deleteTemplateCount, setDeleteTemplateCount] = useState(0)
+  const [deleteCascadeTemplates, setDeleteCascadeTemplates] = useState(true)
   const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
@@ -192,6 +193,7 @@ export function CategoriasSection() {
 
   async function openDelete(cat: CategoriaConfig) {
     setDeleteTarget(cat)
+    setDeleteCascadeTemplates(true)
     try {
       const count = await countTemplatesInCategoria(disciplina, cat.nome)
       setDeleteTemplateCount(count)
@@ -205,10 +207,10 @@ export function CategoriasSection() {
     setDeleting(true)
     setError(null)
     try {
-      await deleteCategoria(deleteTarget.id, disciplina)
+      const result = await deleteCategoria(deleteTarget.id, deleteCascadeTemplates, disciplina)
       setDeleteTarget(null)
       await load()
-      showToast('Categoria excluída')
+      showToast(`Categoria removida. ${result.templates_excluidos} tarefas de template excluídas.`)
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erro ao excluir'
       setError(message)
@@ -228,6 +230,7 @@ export function CategoriasSection() {
             hora.
           </p>
         </div>
+        <RestoreScopeAction escopo="categorias" onRestored={load} />
       </header>
 
       <DisciplinaTabs value={disciplina} onChange={setDisciplina} />
@@ -314,89 +317,23 @@ export function CategoriasSection() {
         </>
       ) : null}
 
-      <Modal
-        open={renameTarget != null}
-        title="Renomear categoria"
-        onClose={() => {
-          if (!renaming) setRenameTarget(null)
-        }}
-      >
-        <div className="categorias-section__rename">
-          <Input
-            label="Novo nome"
-            value={renameNome}
-            onChange={(e) => setRenameNome(e.target.value)}
-          />
-
-          {renamePreview ? (
-            <p className="categorias-section__preview">
-              Impacto atual: {renamePreview.templates} template(s) e {renamePreview.tarefas}{' '}
-              tarefa(s) em projetos ativos usam &quot;{renameTarget?.nome}&quot;.
-            </p>
-          ) : null}
-
-          <fieldset className="categorias-section__radio-group">
-            <legend>Escopo da renomeação</legend>
-            <label className="categorias-section__radio">
-              <input
-                type="radio"
-                name="rename-escopo"
-                checked={renameEscopo === 'config'}
-                onChange={() => setRenameEscopo('config')}
-              />
-              Só a lista de categorias
-            </label>
-            <label className="categorias-section__radio">
-              <input
-                type="radio"
-                name="rename-escopo"
-                checked={renameEscopo === 'config_templates'}
-                onChange={() => setRenameEscopo('config_templates')}
-              />
-              Lista + templates
-            </label>
-            <label className="categorias-section__radio">
-              <input
-                type="radio"
-                name="rename-escopo"
-                checked={renameEscopo === 'tudo'}
-                onChange={() => setRenameEscopo('tudo')}
-              />
-              Lista + templates + tarefas de projetos ativos
-            </label>
-          </fieldset>
-
-          <div className="settings-subsection__actions">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={renaming}
-              onClick={() => setRenameTarget(null)}
-            >
-              Cancelar
-            </Button>
-            <Button type="button" disabled={renaming} onClick={() => void handleRenameConfirm()}>
-              {renaming ? 'Renomeando…' : 'Renomear'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <ConfirmModal
-        isOpen={deleteTarget != null}
-        title="Excluir categoria"
-        message={
-          deleteTarget
-            ? deleteTemplateCount > 0
-              ? `${deleteTemplateCount} tarefa(s) de template usam esta categoria. Elas manterão o nome atual como texto.`
-              : `Excluir a categoria "${deleteTarget.nome}"?`
-            : ''
-        }
-        confirmLabel="Excluir"
-        variant="danger"
-        loading={deleting}
-        onConfirm={() => void handleDeleteConfirm()}
-        onCancel={() => {
+      <CategoriaManagementModals
+        renameTarget={renameTarget}
+        renameNome={renameNome}
+        renameEscopo={renameEscopo}
+        renamePreview={renamePreview}
+        renaming={renaming}
+        onRenameNomeChange={setRenameNome}
+        onRenameEscopoChange={setRenameEscopo}
+        onCloseRename={() => setRenameTarget(null)}
+        onConfirmRename={() => void handleRenameConfirm()}
+        deleteTarget={deleteTarget}
+        deleteTemplateCount={deleteTemplateCount}
+        deleteCascadeTemplates={deleteCascadeTemplates}
+        deleting={deleting}
+        onDeleteCascadeChange={setDeleteCascadeTemplates}
+        onConfirmDelete={() => void handleDeleteConfirm()}
+        onCloseDelete={() => {
           if (!deleting) setDeleteTarget(null)
         }}
       />

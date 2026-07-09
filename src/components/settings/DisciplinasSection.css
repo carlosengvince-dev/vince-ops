@@ -104,9 +104,14 @@
   gap: 8px;
 }
 
-.disciplinas-section__lock {
-  color: var(--text-muted);
-  flex-shrink: 0;
+.disciplinas-section__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .disciplinas-section__delete {
