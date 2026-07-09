@@ -12,7 +12,7 @@ type FormFeedback = {
 }
 
 export default function Login() {
-  const { login, loading, error, clearError, profile, session } = useAuth()
+  const { login, loading, profileLoading, error, clearError, profile, session } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -78,7 +78,7 @@ export default function Login() {
     }
   }
 
-  if (loading && !submitting) {
+  if ((loading || profileLoading) && !submitting) {
     return (
       <div className="login-page">
         <p className="login-page__loading">Carregando…</p>

@@ -2,10 +2,10 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, profile, loading } = useAuth()
+  const { session, profile, loading, profileLoading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  if (loading || (session != null && profileLoading)) {
     return (
       <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>
         Carregando…

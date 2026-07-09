@@ -62,6 +62,7 @@ export interface UseAuthState {
   session: Session | null
   profile: Profile | null
   loading: boolean
+  profileLoading: boolean
   error: string | null
   login: (email: string, password: string) => Promise<Profile>
   logout: () => Promise<void>
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadProfile = useCallback(async (userId: string): Promise<Profile | null> => {
@@ -96,59 +98,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null)
       return null
     }
-    return loadProfile(session.user.id)
+    setProfileLoading(true)
+    try {
+      return await loadProfile(session.user.id)
+    } finally {
+      setProfileLoading(false)
+    }
   }, [loadProfile, session?.user])
 
+  // Bootstrap da sessão: listener ANTES de getSession (evita deadlock supabase-js).
   useEffect(() => {
-    let mounted = true
-
-    async function initSession() {
-      const { data, error: sessionError } = await supabase.auth.getSession()
-
-      if (!mounted) return
-
-      if (sessionError) {
-        setError(sessionError.message)
-        setLoading(false)
-        return
-      }
-
-      const currentSession = data.session
-      setSession(currentSession)
-
-      if (currentSession?.user) {
-        await loadProfile(currentSession.user.id)
-      } else {
-        setProfile(null)
-      }
-
-      setLoading(false)
-    }
-
-    void initSession()
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (!mounted) return
-
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
+      setLoading(false)
 
-      if (nextSession?.user) {
-        setLoading(true)
-        await loadProfile(nextSession.user.id)
-        setLoading(false)
-      } else {
+      if (!nextSession?.user) {
         setProfile(null)
+        setProfileLoading(false)
         setError(null)
       }
     })
 
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
+    void supabase.auth.getSession().then(({ data: { session: currentSession }, error: sessionError }) => {
+      if (sessionError) {
+        setError(sessionError.message)
+      }
+      setSession(currentSession)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Profile fora do callback de auth — reage a mudanças de usuário na sessão.
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId) {
+      setProfile(null)
+      setProfileLoading(false)
+      return
     }
-  }, [loadProfile])
+
+    let cancelled = false
+    setProfileLoading(true)
+
+    void loadProfile(userId).finally(() => {
+      if (!cancelled) {
+        setProfileLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadProfile, session?.user?.id])
+
+  // Failsafe: nunca deixar o boot preso em "Carregando...".
+  useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 6000)
+    return () => clearTimeout(timeout)
+  }, [])
 
   const handleLogin = useCallback(async (email: string, password: string) => {
     setLoading(true)
@@ -196,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       profile,
       loading,
+      profileLoading,
       error,
       login: handleLogin,
       logout: handleLogout,
@@ -206,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       profile,
       loading,
+      profileLoading,
       error,
       handleLogin,
       handleLogout,
