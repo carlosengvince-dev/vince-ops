@@ -107,6 +107,12 @@
   font-weight: 600;
 }
 
+.sortable-template-list__badge--origem-prefeitura {
+  background: var(--badge-prefeitura-bg);
+  color: var(--badge-prefeitura-text);
+  font-weight: 600;
+}
+
 .sortable-template-list__badge--inativa {
   background: var(--badge-normal-bg);
   color: var(--text-muted);

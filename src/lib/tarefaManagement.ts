@@ -20,6 +20,7 @@ export const TAREFA_ORIGEM_OPTIONS: { value: OrigemNormativa; label: string }[] 
   { value: 'EMASA', label: 'EMASA' },
   { value: 'CBMSC', label: 'CBMSC' },
   { value: 'NBR', label: 'NBR' },
+  { value: 'Prefeitura', label: 'Prefeitura' },
 ]
 
 export const CRITICIDADE_OPTIONS: { value: Criticidade; label: string }[] = [

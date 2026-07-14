@@ -350,7 +350,11 @@ export function StepChecklistSelect({
                                     </span>
                                   ) : null}
                                   {template.origem !== 'interno' ? (
-                                    <span className="step-checklist__badge">{template.origem}</span>
+                                    <span
+                                      className={`step-checklist__badge step-checklist__badge--origem-${template.origem.toLowerCase()}`}
+                                    >
+                                      {template.origem}
+                                    </span>
                                   ) : null}
                                 </span>
                               </label>

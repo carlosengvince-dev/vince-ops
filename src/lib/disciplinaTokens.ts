@@ -12,11 +12,13 @@ export const DISCIPLINA_CSS_VARS = {
   SPK: { bg: '--spk-bg', text: '--spk-text', border: '--spk-border' },
 } as const
 
-/** Origem de tarefa alinhada ao tom da disciplina (EMASA→HID, CBMSC→PPCI, NBR→SPK). */
+/** Origem de tarefa alinhada ao tom da disciplina (EMASA→HID, CBMSC→PPCI, NBR→SPK).
+ * Prefeitura usa cor dedicada no CSS (não herda tom de disciplina). */
 export const ORIGEM_DISCIPLINA_TONE: Record<string, Disciplina | null> = {
   emasa: 'HID',
   cbmsc: 'PPCI',
   nbr: 'SPK',
+  prefeitura: null,
   interno: null,
 }
 

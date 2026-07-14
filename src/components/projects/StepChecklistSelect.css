@@ -167,6 +167,30 @@
   color: var(--badge-normal-text);
 }
 
+.step-checklist__badge--origem-emasa {
+  background: var(--badge-emasa-bg);
+  color: var(--badge-emasa-text);
+  font-weight: 600;
+}
+
+.step-checklist__badge--origem-cbmsc {
+  background: var(--badge-cbmsc-bg);
+  color: var(--badge-cbmsc-text);
+  font-weight: 600;
+}
+
+.step-checklist__badge--origem-nbr {
+  background: var(--badge-nbr-bg);
+  color: var(--badge-nbr-text);
+  font-weight: 600;
+}
+
+.step-checklist__badge--origem-prefeitura {
+  background: var(--badge-prefeitura-bg);
+  color: var(--badge-prefeitura-text);
+  font-weight: 600;
+}
+
 .step-checklist input[type='checkbox'] {
   width: 16px;
   height: 16px;

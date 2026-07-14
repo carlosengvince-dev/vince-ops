@@ -28,7 +28,7 @@ export type TarefaStatus =
 
 export type Criticidade = 'critico' | 'normal'
 
-export type OrigemNormativa = 'EMASA' | 'CBMSC' | 'NBR' | 'interno'
+export type OrigemNormativa = 'EMASA' | 'CBMSC' | 'NBR' | 'Prefeitura' | 'interno'
 
 export type ExecutorPadrao = 'gestor' | 'projetista' | 'ambos'
 

@@ -155,6 +155,13 @@
   font-weight: 600;
 }
 
+.task-row__badge--origem.task-row__badge--prefeitura,
+.task-row__badge--prefeitura {
+  background: var(--badge-prefeitura-bg);
+  color: var(--badge-prefeitura-text);
+  font-weight: 600;
+}
+
 .task-row__ref {
   font-size: 11px;
   color: var(--text-muted);
