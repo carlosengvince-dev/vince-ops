@@ -97,11 +97,10 @@ export async function createUserProfile(
   if (!trimmedId) throw new Error('Informe o UUID do usuário.')
   if (!trimmedNome) throw new Error('Informe o nome do usuário.')
 
-  const { error } = await supabase.from('profiles').insert({
-    id: trimmedId,
-    nome: trimmedNome,
-    papel,
-    ativo: true,
+  const { error } = await supabase.rpc('create_profile', {
+    p_id: trimmedId,
+    p_nome: trimmedNome,
+    p_papel: papel,
   })
 
   if (error) throw new Error(error.message)
