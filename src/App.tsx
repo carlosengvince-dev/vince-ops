@@ -18,6 +18,7 @@ import CreateProject from './pages/CreateProject'
 import Dashboard from './pages/Dashboard'
 import History from './pages/History'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import { SettingsLayout } from './components/settings/SettingsLayout'
@@ -39,6 +40,7 @@ function AppRoutes() {
   return createRoutesFromElements(
     <>
       <Route path="/login" element={<Login />} />
+      <Route path="/redefinir-senha" element={<ResetPassword />} />
 
       <Route
         element={

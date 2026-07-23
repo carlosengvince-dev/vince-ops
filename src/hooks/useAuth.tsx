@@ -6,6 +6,32 @@ import type { Profile } from '../types'
 const PROFILE_MISSING_MESSAGE =
   'Perfil não encontrado. Solicite convite ao gestor do escritório.'
 
+const PASSWORD_RECOVERY_KEY = 'vince_password_recovery'
+
+export function isPasswordRecoveryPending(): boolean {
+  try {
+    return sessionStorage.getItem(PASSWORD_RECOVERY_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markPasswordRecovery(): void {
+  try {
+    sessionStorage.setItem(PASSWORD_RECOVERY_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearPasswordRecoveryStorage(): void {
+  try {
+    sessionStorage.removeItem(PASSWORD_RECOVERY_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function getProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase
     .from('profiles')
@@ -63,11 +89,13 @@ export interface UseAuthState {
   profile: Profile | null
   loading: boolean
   profileLoading: boolean
+  passwordRecovery: boolean
   error: string | null
   login: (email: string, password: string) => Promise<Profile>
   logout: () => Promise<void>
   refreshProfile: () => Promise<Profile | null>
   clearError: () => void
+  clearPasswordRecovery: () => void
 }
 
 const AuthContext = createContext<UseAuthState | null>(null)
@@ -77,7 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(() => isPasswordRecoveryPending())
   const [error, setError] = useState<string | null>(null)
+
+  const clearPasswordRecovery = useCallback(() => {
+    clearPasswordRecoveryStorage()
+    setPasswordRecovery(false)
+  }, [])
 
   const loadProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
@@ -107,10 +141,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile, session?.user])
 
   // Bootstrap da sessão: listener ANTES de getSession (evita deadlock supabase-js).
+  // NUNCA await/chamadas supabase dentro do callback (deadlock conhecido).
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        markPasswordRecovery()
+        setPasswordRecovery(true)
+      }
+
       setSession(nextSession)
       setLoading(false)
 
@@ -118,6 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null)
         setProfileLoading(false)
         setError(null)
+        clearPasswordRecoveryStorage()
+        setPasswordRecovery(false)
       }
     })
 
@@ -161,24 +203,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timeout)
   }, [])
 
-  const handleLogin = useCallback(async (email: string, password: string) => {
-    setLoading(true)
-    setError(null)
+  const handleLogin = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true)
+      setError(null)
+      clearPasswordRecovery()
 
-    try {
-      const loadedProfile = await login(email, password)
-      const { data } = await supabase.auth.getSession()
-      setSession(data.session)
-      setProfile(loadedProfile)
-      return loadedProfile
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao fazer login.'
-      setError(message)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+      try {
+        const loadedProfile = await login(email, password)
+        const { data } = await supabase.auth.getSession()
+        setSession(data.session)
+        setProfile(loadedProfile)
+        return loadedProfile
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao fazer login.'
+        setError(message)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+    [clearPasswordRecovery],
+  )
 
   const handleLogout = useCallback(async () => {
     setLoading(true)
@@ -188,6 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await logout()
       setSession(null)
       setProfile(null)
+      clearPasswordRecovery()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao sair.'
       setError(message)
@@ -195,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [clearPasswordRecovery])
 
   const clearError = useCallback(() => {
     setError(null)
@@ -208,22 +255,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       profileLoading,
+      passwordRecovery,
       error,
       login: handleLogin,
       logout: handleLogout,
       refreshProfile,
       clearError,
+      clearPasswordRecovery,
     }),
     [
       session,
       profile,
       loading,
       profileLoading,
+      passwordRecovery,
       error,
       handleLogin,
       handleLogout,
       refreshProfile,
       clearError,
+      clearPasswordRecovery,
     ],
   )
 

@@ -12,7 +12,8 @@ type FormFeedback = {
 }
 
 export default function Login() {
-  const { login, loading, profileLoading, error, clearError, profile, session } = useAuth()
+  const { login, loading, profileLoading, error, clearError, profile, session, passwordRecovery } =
+    useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -23,6 +24,10 @@ export default function Login() {
     clearError()
     setFeedback(null)
   }, [email, password, clearError])
+
+  if (!loading && passwordRecovery) {
+    return <Navigate to="/redefinir-senha" replace />
+  }
 
   if (!loading && session && profile) {
     return <Navigate to="/" replace />
@@ -57,7 +62,7 @@ export default function Login() {
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/redefinir-senha`,
       })
 
       if (resetError) {
