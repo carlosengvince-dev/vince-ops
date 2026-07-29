@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types'
@@ -107,6 +107,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false)
   const [passwordRecovery, setPasswordRecovery] = useState(() => isPasswordRecoveryPending())
   const [error, setError] = useState<string | null>(null)
+  const profileRef = useRef<Profile | null>(null)
+  const sessionUserIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    profileRef.current = profile
+  }, [profile])
+
+  useEffect(() => {
+    sessionUserIdRef.current = session?.user?.id ?? null
+  }, [session?.user?.id])
 
   const clearPasswordRecovery = useCallback(() => {
     clearPasswordRecoveryStorage()
@@ -151,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setPasswordRecovery(true)
       }
 
+      // Update atômico: um único setSession(next) — nunca null→nova no refresh.
       setSession(nextSession)
       setLoading(false)
 
@@ -160,7 +171,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(null)
         clearPasswordRecoveryStorage()
         setPasswordRecovery(false)
+        return
       }
+
+      // Refresh de token: só atualiza a session; não pisca profileLoading.
+      if (event === 'TOKEN_REFRESHED') {
+        return
+      }
+
+      const nextUserId = nextSession.user.id
+      const currentProfile = profileRef.current
+      const prevUserId = currentProfile?.id ?? sessionUserIdRef.current
+
+      // Mesmo usuário com profile já carregado — não desmontar a UI.
+      if (currentProfile && currentProfile.id === nextUserId) {
+        return
+      }
+
+      // Troca real de usuário: limpa profile antigo para os guards mostrarem Carregando.
+      if (prevUserId && prevUserId !== nextUserId) {
+        setProfile(null)
+      }
+
+      // Boot / SIGNED_IN sem profile / troca de usuário — fecha o gap até o effect do profile.
+      setProfileLoading(true)
     })
 
     void supabase.auth.getSession().then(({ data: { session: currentSession }, error: sessionError }) => {
@@ -169,6 +203,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setSession(currentSession)
       setLoading(false)
+      if (currentSession?.user && !profileRef.current) {
+        setProfileLoading(true)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -179,6 +216,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userId = session?.user?.id
     if (!userId) {
       setProfile(null)
+      setProfileLoading(false)
+      return
+    }
+
+    // Já temos o profile deste usuário (ex.: login acabou de setar) — não refetch desnecessário.
+    if (profileRef.current?.id === userId) {
       setProfileLoading(false)
       return
     }

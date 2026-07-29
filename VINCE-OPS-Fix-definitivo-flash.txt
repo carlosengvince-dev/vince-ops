@@ -1,0 +1,81 @@
+---
+name: Fix focus loading flash
+overview: "Corrigir o flash de \"Carregando…\" ao minimizar/voltar o navegador: o TOKEN_REFRESHED do Supabase liga `profileLoading` e as rotas desmontam a árvore inteira — sem tocar no polling do checklist."
+todos:
+  - id: auth-token-refresh
+    content: "Ajustar onAuthStateChange em useAuth: não setar profileLoading em TOKEN_REFRESHED / mesmo user com profile"
+    status: pending
+  - id: route-gates
+    content: "ProtectedRoute + PermittedRoute: só mostrar Carregando se ainda não há profile"
+    status: pending
+  - id: validate-focus-f5
+    content: Validar minimize/foco + F5 deep-link + npm run build
+    status: pending
+isProject: false
+---
+
+# Fix definitivo: flash "Carregando…" ao minimizar
+
+## Diagnóstico
+
+O problema **não** vem do polling do checklist (`visibilitychange` em [`useProjectDetail.ts`](d:\VINCE\sistemas-web\vince-ops\src\hooks\useProjectDetail.ts)). Esse fluxo só seta `tarefasSyncing` e faz merge — nunca liga `initialLoading`.
+
+A tela de **"Carregando…"** que você vê é a dos guards de rota:
+
+- [`ProtectedRoute.tsx`](d:\VINCE\sistemas-web\vince-ops\src\components\layout\ProtectedRoute.tsx) — `if (loading || profileLoading)`
+- [`PermittedRoute.tsx`](d:\VINCE\sistemas-web\vince-ops\src\components\layout\PermittedRoute.tsx) — idem
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Supabase
+  participant useAuth
+  participant ProtectedRoute
+  participant ProjectDetail
+
+  Browser->>Supabase: minimize / volta foco
+  Supabase->>useAuth: TOKEN_REFRESHED
+  useAuth->>useAuth: setProfileLoading(true)
+  Note over useAuth: user.id igual → effect de profile NÃO roda
+  useAuth->>ProtectedRoute: profileLoading true
+  ProtectedRoute-->>ProjectDetail: desmonta (mostra Carregando)
+  Note over useAuth: profileLoading pode ficar preso ou só piscar
+```
+
+Causa no [`useAuth.tsx`](d:\VINCE\sistemas-web\vince-ops\src\hooks\useAuth.tsx): no `onAuthStateChange`, **qualquer** evento com usuário (incluindo `TOKEN_REFRESHED`) faz `setProfileLoading(true)`. O `useEffect` que zera o flag depende só de `session?.user?.id` — no refresh o id não muda, então o effect **não re-roda** e o loading fica ligado (ou pisca até outro caminho limpar).
+
+Isso explica por que produção (sem o fix F5 recente) está ok e o local (com `profileLoading` agressivo) quebrou de novo. A persistência de abas na URL continua válida; o flash acontece porque o guard **desmonta** o `ProjectDetail` antes de ela poder manter a UI.
+
+## Solução (duas camadas, definitiva)
+
+### 1. Auth: `profileLoading` só quando o usuário realmente muda
+
+Em [`useAuth.tsx`](d:\VINCE\sistemas-web\vince-ops\src\hooks\useAuth.tsx):
+
+- Continuar atualizando `session` em todo evento (incluindo `TOKEN_REFRESHED`).
+- **Não** chamar `setProfileLoading(true)` em `TOKEN_REFRESHED` (nem em refresh quando já existe `profile` para o mesmo `user.id`).
+- Ligar `profileLoading` apenas em boot / login / troca de usuário / quando ainda não há profile (`INITIAL_SESSION`, `SIGNED_IN` sem profile, ou `user.id` diferente).
+- Manter o failsafe de timeout e o comportamento F5 (não redirecionar para `/login` enquanto sessão resolve de verdade).
+
+### 2. Guards: não desmontar a UI se o profile já está conhecido
+
+Em `ProtectedRoute` e `PermittedRoute`:
+
+- Trocar o gate de loading para algo na linha:  
+  `if ((loading || profileLoading) && !profile)`  
+  (em `ProtectedRoute`, ainda exigir sessão no redirect final; no boot sem sessão/profile, continua mostrando Carregando e preservando URL no F5).
+- Assim um refresh de token em background **nunca** troca a árvore por "Carregando…" nem desmonta checklist/abas/modais.
+
+### O que **não** mexer
+
+- Polling do checklist (está correto).
+- Cache / `initialLoading` de `useProjectDetail`.
+- Query params de abas (`aba` / `disc` / `fase`) — já resolvem remontagem real.
+
+## Validação
+
+1. Abrir um projeto, navegar para outra aba/fase, scrollar o checklist.
+2. Minimizar o navegador (ou trocar de app) por alguns segundos e voltar.
+3. Esperado: **zero** tela "Carregando…"; mesma aba/fase/scroll; sync discreto do checklist ok.
+4. F5 na URL profunda `/projetos/:id?...` ainda não deve mandar para `/login` cedo demais.
+5. `npm run build` passa.

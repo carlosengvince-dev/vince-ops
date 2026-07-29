@@ -11,6 +11,7 @@ import {
 } from '../../lib/faseConfig'
 import { calcPhaseProgress } from '../../lib/projectTasks'
 import type { Disciplina, Fase, FasesAtuais, Tarefa } from '../../types'
+import { RefreshCw } from 'lucide-react'
 import { disciplinaTabClass } from '../ui/DisciplinaTabs'
 import { disciplinaTabStyle } from '../../lib/disciplinaTokens'
 import './PhaseSidebar.css'
@@ -49,6 +50,8 @@ interface PhaseSidebarProps {
   estruturaFases?: EstruturaFasesSnapshot | null
   onDisciplinaChange: (d: Disciplina) => void
   onFaseChange: (f: Fase) => void
+  syncing?: boolean
+  onRefresh?: () => void | Promise<void>
 }
 
 export function PhaseSidebar({
@@ -61,6 +64,8 @@ export function PhaseSidebar({
   estruturaFases = null,
   onDisciplinaChange,
   onFaseChange,
+  syncing = false,
+  onRefresh,
 }: PhaseSidebarProps) {
   const disciplinaAtivaLabel = useDisciplinaLabel(disciplinaAtiva)
   const overrideMap = buildProjetoFaseOverrideMap(projetoFaseOverrides)
@@ -99,7 +104,7 @@ export function PhaseSidebar({
           const progress = calcPhaseProgress(tarefas, disciplinaAtiva, fase)
 
           return (
-            <li key={faseConfig.id}>
+            <li key={faseConfig.id} className="phase-sidebar__row">
               <button
                 type="button"
                 className={[
@@ -119,6 +124,26 @@ export function PhaseSidebar({
                   <span className="phase-sidebar__item-tag">atual</span>
                 ) : null}
               </button>
+              {isActive && onRefresh ? (
+                <button
+                  type="button"
+                  className="phase-sidebar__sync-btn"
+                  onClick={() => void onRefresh()}
+                  disabled={syncing}
+                  title="Atualizar checklist"
+                  aria-label="Atualizar checklist"
+                >
+                  <RefreshCw
+                    size={13}
+                    className={
+                      syncing
+                        ? 'phase-sidebar__sync phase-sidebar__sync--spin'
+                        : 'phase-sidebar__sync'
+                    }
+                    aria-hidden
+                  />
+                </button>
+              ) : null}
             </li>
           )
         })}

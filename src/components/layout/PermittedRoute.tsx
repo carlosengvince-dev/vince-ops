@@ -9,9 +9,9 @@ interface PermittedRouteProps {
 }
 
 export function PermittedRoute({ permission, children }: PermittedRouteProps) {
-  const { profile, loading } = useAuth()
+  const { profile, loading, profileLoading } = useAuth()
 
-  if (loading) {
+  if ((loading || profileLoading) && !profile) {
     return (
       <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>
         Carregando…

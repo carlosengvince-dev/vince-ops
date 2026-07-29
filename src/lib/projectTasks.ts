@@ -40,6 +40,77 @@ export function groupTarefasByCategoria(tarefas: Tarefa[]): Map<string, Tarefa[]
   return map
 }
 
+/** Campos sincronizados pelo polling sem remountar UI local. */
+const POLL_MERGE_KEYS = [
+  'status',
+  'responsavel_id',
+  'responsavel_nome',
+  'responsavel_papel',
+  'motivo_bloqueio',
+  'data_conclusao',
+  'updated_at',
+  'updated_by',
+  'ordem',
+  'fase',
+  'categoria',
+  'nome',
+  'descricao',
+  'criticidade',
+  'origem',
+  'referencia_normativa',
+] as const satisfies readonly (keyof Tarefa)[]
+
+/**
+ * Merge remoto → local para polling:
+ * - preserva referência se nada mudou (evita piscar timer/re-render)
+ * - aplica só campos de sync quando mudaram
+ * - inclui tarefas novas e remove as que sumiram (soft-delete remoto)
+ */
+export function mergeTarefasFromRemote(local: Tarefa[], remote: Tarefa[]): Tarefa[] {
+  if (remote.length === 0 && local.length === 0) return local
+
+  const localById = new Map(local.map((t) => [t.id, t]))
+  let anyChange = local.length !== remote.length
+  const merged: Tarefa[] = []
+
+  for (const remoteRow of remote) {
+    const prev = localById.get(remoteRow.id)
+    if (!prev) {
+      merged.push(remoteRow)
+      anyChange = true
+      continue
+    }
+
+    let changed = false
+    const next: Tarefa = { ...prev }
+    for (const key of POLL_MERGE_KEYS) {
+      if (prev[key] !== remoteRow[key]) {
+        ;(next as unknown as Record<string, unknown>)[key] = remoteRow[key]
+        changed = true
+      }
+    }
+
+    if (changed) {
+      anyChange = true
+      merged.push(next)
+    } else {
+      merged.push(prev)
+    }
+  }
+
+  if (!anyChange) {
+    // Mesmos ids na mesma ordem?
+    for (let i = 0; i < local.length; i++) {
+      if (local[i].id !== remote[i]?.id) {
+        anyChange = true
+        break
+      }
+    }
+  }
+
+  return anyChange ? merged : local
+}
+
 export async function updateTarefaResponsavel(
   tarefaId: string,
   responsavelId: string | null,

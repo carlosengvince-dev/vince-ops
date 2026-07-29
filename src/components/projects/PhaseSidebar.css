@@ -37,6 +37,57 @@
   padding: 0;
 }
 
+.phase-sidebar__row {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.phase-sidebar__row .phase-sidebar__item {
+  flex: 1;
+  min-width: 0;
+}
+
+.phase-sidebar__sync-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 10px 0 0;
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.phase-sidebar__sync-btn:hover:not(:disabled) {
+  color: var(--text-secondary);
+  background: var(--surface-2);
+}
+
+.phase-sidebar__sync-btn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.phase-sidebar__sync {
+  flex-shrink: 0;
+}
+
+.phase-sidebar__sync--spin {
+  animation: phase-sidebar-sync-spin 0.9s linear infinite;
+}
+
+@keyframes phase-sidebar-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .phase-sidebar__item {
   display: flex;
   align-items: center;

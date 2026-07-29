@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { useAuth } from '../hooks/useAuth'
@@ -14,11 +14,17 @@ type FormFeedback = {
 export default function Login() {
   const { login, loading, profileLoading, error, clearError, profile, session, passwordRecovery } =
     useAuth()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [feedback, setFeedback] = useState<FormFeedback | null>(null)
+
+  const from =
+    typeof (location.state as { from?: unknown } | null)?.from === 'string'
+      ? (location.state as { from: string }).from
+      : null
 
   useEffect(() => {
     clearError()
@@ -29,8 +35,9 @@ export default function Login() {
     return <Navigate to="/redefinir-senha" replace />
   }
 
-  if (!loading && session && profile) {
-    return <Navigate to="/" replace />
+  if (!loading && !profileLoading && session && profile) {
+    const dest = from && from.startsWith('/') && !from.startsWith('/login') ? from : '/'
+    return <Navigate to={dest} replace />
   }
 
   async function handleSubmit(event: FormEvent) {

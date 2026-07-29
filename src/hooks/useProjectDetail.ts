@@ -1,10 +1,34 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { ProjetoFaseOverride } from '../lib/faseConfig'
+import { mergeTarefasFromRemote } from '../lib/projectTasks'
 import type { DocumentoProjeto, Papel, Projeto, Tarefa } from '../types'
 import type { ProjectHomeCliente } from '../components/projects/ProjectHomePanel'
 
 const detailCache = new Map<string, ProjectDetailData>()
+const TAREFAS_POLL_INTERVAL_MS = 30_000
+const TAREFAS_POLL_AUTH_RETRY_MS = 1_000
+
+function isTransientAuthError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? '')
+  const lower = message.toLowerCase()
+  return (
+    lower.includes('jwt') ||
+    lower.includes('unauthorized') ||
+    lower.includes('not authenticated') ||
+    lower.includes('invalid claim') ||
+    lower.includes('refresh_token') ||
+    lower.includes('401') ||
+    lower.includes('pgrst301') ||
+    (lower.includes('session') && (lower.includes('expired') || lower.includes('missing')))
+  )
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 export interface ProjectDetailData {
   projeto: Projeto & {
@@ -36,6 +60,28 @@ type ProjetoPatch = Partial<
   cliente?: ProjectHomeCliente | null
 }
 
+function mapTarefaRow(raw: Record<string, unknown>): Tarefa {
+  const profile = raw.profiles as { nome: string; papel: Papel } | null
+  const { profiles: _profiles, ...rest } = raw
+  return {
+    ...(rest as unknown as Tarefa),
+    responsavel_nome: profile?.nome ?? null,
+    responsavel_papel: profile?.papel ?? null,
+  }
+}
+
+async function fetchTarefasForProjeto(projectId: string): Promise<Tarefa[]> {
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('*, profiles!responsavel_id(nome, papel)')
+    .eq('projeto_id', projectId)
+    .is('deleted_at', null)
+    .order('ordem', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((raw) => mapTarefaRow(raw as Record<string, unknown>))
+}
+
 export function useProjectDetail(projectId: string | undefined) {
   const [data, setData] = useState<ProjectDetailData | null>(() =>
     projectId ? (detailCache.get(projectId) ?? null) : null,
@@ -44,6 +90,13 @@ export function useProjectDetail(projectId: string | undefined) {
     () => (projectId ? !detailCache.has(projectId) : false),
   )
   const [error, setError] = useState<string | null>(null)
+  const [tarefasSyncing, setTarefasSyncing] = useState(false)
+  const pollInFlightRef = useRef(false)
+  const dataRef = useRef(data)
+
+  useEffect(() => {
+    dataRef.current = data
+  }, [data])
 
   const fetchDetail = useCallback(async () => {
     if (!projectId) {
@@ -116,24 +169,15 @@ export function useProjectDetail(projectId: string | undefined) {
             }
           : null,
       },
-      tarefas: (tarefasRes.data ?? []).map((raw) => {
-        const t = raw as Record<string, unknown>
-        const profile = t.profiles as { nome: string; papel: Papel } | null
-        const { profiles: _profiles, ...rest } = t
-        return {
-          ...(rest as unknown as Tarefa),
-          responsavel_nome: profile?.nome ?? null,
-          responsavel_papel: profile?.papel ?? null,
-        }
-      }),
+      tarefas: (tarefasRes.data ?? []).map((raw) => mapTarefaRow(raw as Record<string, unknown>)),
       documentos: (documentosRes.data ?? []) as DocumentoProjeto[],
       projetoFaseOverrides: (projetoFasesRes.data ?? []).map((raw) => {
-        const row = raw as Record<string, unknown>
-        const fase = row.fases_config as { codigo: string } | null
+        const overrideRow = raw as Record<string, unknown>
+        const fase = overrideRow.fases_config as { codigo: string } | null
         return {
-          fase_config_id: row.fase_config_id as string,
+          fase_config_id: overrideRow.fase_config_id as string,
           codigo: (fase?.codigo ?? '') as ProjetoFaseOverride['codigo'],
-          ativa: Boolean(row.ativa),
+          ativa: Boolean(overrideRow.ativa),
         }
       }),
     }
@@ -143,9 +187,99 @@ export function useProjectDetail(projectId: string | undefined) {
     setInitialLoading(false)
   }, [projectId])
 
+  const pollTarefas = useCallback(async () => {
+    if (!projectId || pollInFlightRef.current) return
+    if (!dataRef.current) return
+
+    pollInFlightRef.current = true
+    setTarefasSyncing(true)
+
+    const applyRemote = (remote: Tarefa[]) => {
+      setData((prev) => {
+        if (!prev || prev.projeto.id !== projectId) return prev
+        const merged = mergeTarefasFromRemote(prev.tarefas, remote)
+        if (merged === prev.tarefas) return prev
+        const next = { ...prev, tarefas: merged }
+        detailCache.set(projectId, next)
+        return next
+      })
+    }
+
+    try {
+      try {
+        const remote = await fetchTarefasForProjeto(projectId)
+        applyRemote(remote)
+      } catch (err) {
+        // Foco do browser dispara refresh de token + poll juntos — retry silencioso 1x.
+        if (!isTransientAuthError(err)) return
+        await sleep(TAREFAS_POLL_AUTH_RETRY_MS)
+        if (!dataRef.current || dataRef.current.projeto.id !== projectId) return
+        const remote = await fetchTarefasForProjeto(projectId)
+        applyRemote(remote)
+      }
+    } catch {
+      // polling silencioso
+    } finally {
+      pollInFlightRef.current = false
+      setTarefasSyncing(false)
+    }
+  }, [projectId])
+
+  const restartPollTimerRef = useRef<(() => void) | null>(null)
+
+  const refreshTarefas = useCallback(async () => {
+    await pollTarefas()
+    if (document.visibilityState === 'visible') {
+      restartPollTimerRef.current?.()
+    }
+  }, [pollTarefas])
+
   useEffect(() => {
     void fetchDetail()
   }, [fetchDetail])
+
+  // Polling de tarefas (30s) com pause em background + fetch imediato ao focar.
+  useEffect(() => {
+    if (!projectId || initialLoading) return
+
+    let intervalId: number | null = null
+
+    const clear = () => {
+      if (intervalId != null) {
+        window.clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+
+    const start = () => {
+      clear()
+      intervalId = window.setInterval(() => {
+        void pollTarefas()
+      }, TAREFAS_POLL_INTERVAL_MS)
+    }
+
+    restartPollTimerRef.current = start
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        clear()
+        return
+      }
+      void pollTarefas()
+      start()
+    }
+
+    if (document.visibilityState === 'visible') {
+      start()
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clear()
+      restartPollTimerRef.current = null
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [projectId, initialLoading, pollTarefas])
 
   const patchTarefa = useCallback((tarefaId: string, patch: Partial<Tarefa>) => {
     setData((prev) => {
@@ -276,7 +410,9 @@ export function useProjectDetail(projectId: string | undefined) {
     loading: initialLoading,
     initialLoading,
     error,
+    tarefasSyncing,
     refresh: fetchDetail,
+    refreshTarefas,
     patchTarefa,
     patchFasesAtuais,
     appendTarefas,

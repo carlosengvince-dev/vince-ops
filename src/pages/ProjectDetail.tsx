@@ -78,7 +78,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { data, loading, error, refresh, patchTarefa, patchFasesAtuais, appendTarefas, appendTarefa, removeTarefa, patchTarefasOrdem, patchProjetoMetadata, patchProjeto, removeTarefasByIds, patchDocumento, appendDocumento, removeDocumento } =
+  const { data, loading, error, refresh, tarefasSyncing, refreshTarefas, patchTarefa, patchFasesAtuais, appendTarefas, appendTarefa, removeTarefa, patchTarefasOrdem, patchProjetoMetadata, patchProjeto, removeTarefasByIds, patchDocumento, appendDocumento, removeDocumento } =
     useProjectDetail(id)
   const { totals: taskTimerTotals } = useTaskTimerTotals(id)
 
@@ -863,6 +863,8 @@ export default function ProjectDetail() {
           estruturaFases={estruturaFases}
           onDisciplinaChange={setDisciplinaAtiva}
           onFaseChange={setFaseAtiva}
+          syncing={tarefasSyncing}
+          onRefresh={refreshTarefas}
         />
 
         <div className="project-detail__main">
