@@ -5,6 +5,28 @@
   min-width: 0;
 }
 
+.pre-info-panel--embedded {
+  flex: 0 0 auto;
+  margin: 0 0 8px;
+  border-bottom: 0.5px solid var(--border);
+  background: var(--surface);
+}
+
+.pre-info-panel--embedded .pre-info-panel__header {
+  padding: 16px 24px 12px;
+}
+
+.pre-info-panel--embedded .pre-info-panel__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pre-info-panel--embedded .pre-info-panel__body {
+  flex: 0 0 auto;
+  overflow: visible;
+  padding: 0 24px 20px;
+}
+
 .pre-info-panel__header {
   padding: 20px 24px;
   background: var(--surface);

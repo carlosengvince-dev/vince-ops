@@ -50,7 +50,7 @@ export function buildFasesAtuais(
 
   for (const disciplina of disciplinas) {
     if (modo === 'novo') {
-      fasesAtuais[disciplina] = 'PRE_INFO'
+      fasesAtuais[disciplina] = 'INFO_GERAL'
       continue
     }
 

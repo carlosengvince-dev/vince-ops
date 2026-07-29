@@ -89,7 +89,7 @@ export async function fetchActiveTimers(): Promise<ActiveTimerRow[]> {
       projetoId: r.projeto_id as string,
       projetoCodigo: tarefa?.projetos?.codigo ?? '—',
       disciplina: r.disciplina as Disciplina,
-      fase: (tarefa?.fase ?? 'PRE_INFO') as Fase,
+      fase: (tarefa?.fase ?? 'INFO_GERAL') as Fase,
     }
   })
 }
@@ -116,7 +116,7 @@ export async function fetchMyActiveTimer(userId: string): Promise<MyActiveTimer 
     tarefaNome: tarefa?.nome ?? 'Tarefa',
     projetoId: data.projeto_id,
     disciplina: data.disciplina as Disciplina,
-    fase: (tarefa?.fase ?? 'PRE_INFO') as Fase,
+    fase: (tarefa?.fase ?? 'INFO_GERAL') as Fase,
     inicio: data.inicio,
   }
 }
@@ -167,7 +167,7 @@ export async function startTimerRegistro(
     tarefaNome: tarefaRow?.nome ?? 'Tarefa',
     projetoId: data.projeto_id,
     disciplina: data.disciplina as Disciplina,
-    fase: (tarefaRow?.fase ?? 'PRE_INFO') as Fase,
+    fase: (tarefaRow?.fase ?? 'INFO_GERAL') as Fase,
     inicio: data.inicio,
   }
 }

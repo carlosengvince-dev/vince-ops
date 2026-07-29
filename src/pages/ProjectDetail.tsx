@@ -219,9 +219,12 @@ export default function ProjectDetail() {
     [navigateToChecklist],
   )
 
-  const handleNavigateToPreInfo = useCallback(() => {
+  const handleNavigateToRecebimento = useCallback(() => {
     if (!disciplinaAtiva) return
-    navigateToChecklist(disciplinaAtiva, 'PRE_INFO')
+    navigateToChecklist(disciplinaAtiva, 'INFO_GERAL')
+    window.requestAnimationFrame(() => {
+      document.getElementById('recebimento')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }, [disciplinaAtiva, navigateToChecklist])
 
   const handleDocumentoStatusChange = useCallback(
@@ -1044,19 +1047,22 @@ export default function ProjectDetail() {
               onStatusChange={handleStatusChange}
               onAssigneeChange={handleAssigneeChange}
             />
-          ) : mainTab === 'checklist' && faseAtiva === 'PRE_INFO' ? (
-            <PreInfoPanel
-              nome={projeto.nome}
-              clienteNome={projeto.cliente_nome}
-              documentos={documentos}
-              readOnly={readOnly}
-              onStatusChange={handleDocumentoStatusChange}
-              onObservacoesChange={handleDocumentoObservacoesChange}
-              onAddDocumento={handleAddDocumento}
-              onRemoveDocumento={handleRemoveDocumento}
-            />
-          ) : (
-            <ChecklistPanel
+          ) : mainTab === 'checklist' ? (
+            <>
+              {faseAtiva === 'INFO_GERAL' ? (
+                <PreInfoPanel
+                  embedded
+                  nome={projeto.nome}
+                  clienteNome={projeto.cliente_nome}
+                  documentos={documentos}
+                  readOnly={readOnly}
+                  onStatusChange={handleDocumentoStatusChange}
+                  onObservacoesChange={handleDocumentoObservacoesChange}
+                  onAddDocumento={handleAddDocumento}
+                  onRemoveDocumento={handleRemoveDocumento}
+                />
+              ) : null}
+              <ChecklistPanel
               projetoId={projeto.id}
               usuarioId={profile!.id}
               usuarioNome={profile!.nome}
@@ -1081,10 +1087,11 @@ export default function ProjectDetail() {
               expandedTarefaId={expandedTarefaId}
               readOnly={readOnly}
               documentos={documentos}
-              onNavigateToPreInfo={handleNavigateToPreInfo}
+              onNavigateToPreInfo={handleNavigateToRecebimento}
               resolvePhaseLabel={resolvePhaseLabel}
             />
-          )}
+            </>
+          ) : null}
         </div>
       </div>
 

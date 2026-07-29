@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getFaseAtual } from '../lib/constants'
 import {
@@ -10,6 +10,7 @@ import {
 } from '../lib/faseConfig'
 import type { ProjectMainTab } from '../components/projects/ProjectDetailTabs'
 import type { Disciplina, Fase, Projeto } from '../types'
+import { getActiveDisciplinaCodigos } from '../lib/disciplinaConfig'
 
 const VALID_TABS = new Set<ProjectMainTab>([
   'home',
@@ -19,7 +20,10 @@ const VALID_TABS = new Set<ProjectMainTab>([
   'atividade',
 ])
 
-import { getActiveDisciplinaCodigos } from '../lib/disciplinaConfig'
+/** PRE_INFO deixou de ser fase própria — docs vivem em INFO_GERAL. */
+function normalizeFaseNav(fase: Fase): Fase {
+  return fase === 'PRE_INFO' ? 'INFO_GERAL' : fase
+}
 
 function parseTab(value: string | null): ProjectMainTab {
   if (value && VALID_TABS.has(value as ProjectMainTab)) {
@@ -60,10 +64,15 @@ function parseFase(
   estruturaFases: EstruturaFasesSnapshot | null,
 ): Fase {
   const fases = getPhaseSequenceForNavigation(disciplina, projetoFaseOverrides, estruturaFases)
+  if (value === 'PRE_INFO') {
+    return 'INFO_GERAL'
+  }
   if (value && fases.includes(value as Fase)) {
     return value as Fase
   }
-  return getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplina, fases)
+  return normalizeFaseNav(
+    getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplina, fases),
+  )
 }
 
 export function useProjectDetailNavigation(
@@ -109,6 +118,13 @@ export function useProjectDetailNavigation(
     [setSearchParams],
   )
 
+  // Deep links antigos ?fase=PRE_INFO → INFO_GERAL
+  useEffect(() => {
+    if (searchParams.get('fase') === 'PRE_INFO') {
+      patchParams({ fase: 'INFO_GERAL', aba: 'checklist' })
+    }
+  }, [searchParams, patchParams])
+
   const setMainTab = useCallback(
     (tab: ProjectMainTab) => {
       patchParams({ aba: tab })
@@ -120,10 +136,8 @@ export function useProjectDetailNavigation(
     (disciplina: Disciplina) => {
       if (!projeto) return
       const sequence = getPhaseSequenceForNavigation(disciplina, projetoFaseOverrides, estruturaFases)
-      const fase = getFaseAtual(
-        projeto.fases_atuais as Record<string, unknown>,
-        disciplina,
-        sequence,
+      const fase = normalizeFaseNav(
+        getFaseAtual(projeto.fases_atuais as Record<string, unknown>, disciplina, sequence),
       )
       patchParams({ disc: disciplina, fase, aba: 'checklist' })
     },
@@ -132,7 +146,7 @@ export function useProjectDetailNavigation(
 
   const setFaseAtiva = useCallback(
     (fase: Fase) => {
-      patchParams({ fase, aba: 'checklist' })
+      patchParams({ fase: normalizeFaseNav(fase), aba: 'checklist' })
     },
     [patchParams],
   )
@@ -166,7 +180,7 @@ export function useProjectDetailNavigation(
       patchParams({
         aba: 'checklist',
         disc: disciplina,
-        fase,
+        fase: normalizeFaseNav(fase),
         tarefa: opts?.tarefaId ?? null,
         pend: null,
         rev: null,

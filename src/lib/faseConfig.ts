@@ -289,7 +289,7 @@ export function getFaseAtualFromSequence(
   if (typeof fase === 'string' && sequence.includes(fase as Fase)) {
     return fase as Fase
   }
-  return sequence[0] ?? 'PRE_INFO'
+  return sequence[0] ?? 'INFO_GERAL'
 }
 
 export function getFasesComChecklist(disciplina: Disciplina): Fase[] {

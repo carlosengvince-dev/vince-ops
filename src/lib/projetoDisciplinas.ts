@@ -35,7 +35,7 @@ export function buildFasesAtuaisComNovaDisciplina(
 ): FasesAtuais {
   return {
     ...current,
-    [disciplina]: 'PRE_INFO',
+    [disciplina]: 'INFO_GERAL',
   }
 }
 

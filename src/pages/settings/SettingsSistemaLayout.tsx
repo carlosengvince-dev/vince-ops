@@ -4,7 +4,7 @@ import { canManageConfigSnapshots } from '../../lib/configSnapshot'
 import './SettingsSectionPage.css'
 
 const SUBSECTIONS = [
-  { to: 'documentos', label: 'Documentos PRÉ-INFO' },
+  { to: 'documentos', label: 'Documentos — Recebimento' },
   { to: 'tipos-edificacao', label: 'Tipos de edificação' },
   { to: 'campos-projeto', label: 'Campos do projeto' },
   { to: 'responsaveis-tecnicos', label: 'Responsáveis Técnicos' },

@@ -152,7 +152,7 @@ export function hasPermissao(papel: Papel, permissao: Permissao): boolean {
   return PERMISSOES[papel][permissao]
 }
 
-/** Fases que possuem checklist de tarefas (PRE_INFO é só documentos). */
+/** Fases que possuem checklist de tarefas (PRE_INFO era só documentos; desativada). */
 export const FASES_COM_CHECKLIST: Fase[] = [
   'INFO_GERAL',
   'EP',

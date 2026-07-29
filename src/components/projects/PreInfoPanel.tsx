@@ -18,6 +18,8 @@ interface PreInfoPanelProps {
   nome: string
   clienteNome: string | null
   documentos: DocumentoProjeto[]
+  /** Quando true, renderiza como seção dentro de INFO_GERAL (sem header de página). */
+  embedded?: boolean
   readOnly?: boolean
   onStatusChange?: (
     docId: string,
@@ -33,6 +35,7 @@ export function PreInfoPanel({
   nome,
   clienteNome,
   documentos,
+  embedded = false,
   readOnly = false,
   onStatusChange,
   onObservacoesChange,
@@ -113,13 +116,22 @@ export function PreInfoPanel({
   }
 
   return (
-    <div className="pre-info-panel">
+    <div
+      id={embedded ? 'recebimento' : undefined}
+      className={`pre-info-panel${embedded ? ' pre-info-panel--embedded' : ''}`}
+    >
       <header className="pre-info-panel__header">
         <div>
-          <h1 className="pre-info-panel__title">{nome}</h1>
-          <p className="pre-info-panel__subtitle">
-            {clienteNome ?? 'Sem cliente'} · Recebimento de documentos
-          </p>
+          {embedded ? (
+            <h2 className="pre-info-panel__title">Recebimento de documentos</h2>
+          ) : (
+            <>
+              <h1 className="pre-info-panel__title">{nome}</h1>
+              <p className="pre-info-panel__subtitle">
+                {clienteNome ?? 'Sem cliente'} · Recebimento de documentos
+              </p>
+            </>
+          )}
         </div>
         {canEdit && onAddDocumento ? (
           <Button variant="secondary" onClick={() => setAddOpen(true)}>

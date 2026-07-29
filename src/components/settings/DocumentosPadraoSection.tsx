@@ -147,9 +147,9 @@ export function DocumentosPadraoSection() {
     <section className="settings-subsection">
       <header className="settings-subsection__head">
         <div>
-          <h2 className="settings-subsection__title">Documentos padrão PRÉ-INFO</h2>
+          <h2 className="settings-subsection__title">Documentos padrão — Recebimento</h2>
           <p className="settings-subsection__hint">
-            Lista aplicada automaticamente a novos projetos na fase PRÉ-INFO.
+            Lista aplicada automaticamente a novos projetos (seção Recebimento em Informações Gerais).
           </p>
         </div>
         <Button variant="secondary" onClick={openCreate}>
