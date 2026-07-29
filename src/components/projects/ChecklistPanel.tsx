@@ -322,9 +322,10 @@ export function ChecklistPanel({
 
   const toggleCollapse = useCallback(
     (sectionId: string) => {
+      const currentlyCollapsed = collapsedMap[sectionId] !== false
       persistCollapse({
         ...collapsedMap,
-        [sectionId]: !collapsedMap[sectionId],
+        [sectionId]: !currentlyCollapsed,
       })
     },
     [collapsedMap, persistCollapse],
@@ -573,7 +574,8 @@ export function ChecklistPanel({
         id: section.id,
         title: section.title,
         count: section.items.length,
-        collapsed: Boolean(collapsedMap[section.id]),
+        // Padrão: recolhido (só expandido quando map marca false explicitamente)
+        collapsed: collapsedMap[section.id] !== false,
         content: renderTaskList(section.id, section.items),
       })),
     [viewSections, collapsedMap, renderTaskList],
