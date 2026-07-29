@@ -40,8 +40,8 @@ interface RevisoesPanelProps {
 
 export function RevisoesPanel({
   projetoId,
-  nome,
-  clienteNome,
+  nome: _nome,
+  clienteNome: _clienteNome,
   disciplinaAtiva,
   metodologia,
   fasesAtuais,
@@ -147,8 +147,7 @@ export function RevisoesPanel({
     <div className="revisoes-panel">
       <header className="revisoes-panel__header">
         <div>
-          <h1 className="revisoes-panel__title">{nome}</h1>
-          <p className="revisoes-panel__subtitle">{clienteNome ?? 'Sem cliente'} · Revisões</p>
+          <h2 className="revisoes-panel__title">Revisões</h2>
         </div>
         {canManage && revisionDisciplina ? (
           <Button variant="primary" onClick={() => setCreateOpen(true)}>

@@ -35,8 +35,8 @@ interface PendenciasPanelProps {
 
 export function PendenciasPanel({
   projetoId,
-  nome,
-  clienteNome,
+  nome: _nome,
+  clienteNome: _clienteNome,
   disciplinas,
   papel,
   usuarioId,
@@ -168,8 +168,7 @@ export function PendenciasPanel({
     <div className="pendencias-panel">
       <header className="pendencias-panel__header">
         <div>
-          <h1 className="pendencias-panel__title">{nome}</h1>
-          <p className="pendencias-panel__subtitle">{clienteNome ?? 'Sem cliente'} · Pendências</p>
+          <h2 className="pendencias-panel__title">Pendências</h2>
         </div>
         {canManage ? (
           <Button variant="primary" onClick={openCreate}>

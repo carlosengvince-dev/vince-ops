@@ -34,6 +34,7 @@ interface SortableTaskListProps {
   onDelete: (tarefa: Tarefa) => void
   onReorder: (orderedIds: string[]) => void
   expandedTarefaId?: string | null
+  expandSignal?: { version: number; open: boolean } | null
   readOnly?: boolean
 }
 
@@ -50,6 +51,7 @@ export function SortableTaskList({
   onDelete,
   onReorder,
   expandedTarefaId = null,
+  expandSignal = null,
   readOnly = false,
 }: SortableTaskListProps) {
   const [localItems, setLocalItems] = useState(items)
@@ -89,6 +91,8 @@ export function SortableTaskList({
             canManage={canManage}
             readOnly={readOnly}
             taskTimerSeconds={taskTimerTotals[t.id] ?? 0}
+            initialExpanded={expandedTarefaId === t.id}
+            expandSignal={expandSignal}
             onStatusChange={onStatusChange}
             onAssigneeChange={onAssigneeChange}
             onEdit={() => onEdit(t)}
@@ -113,6 +117,7 @@ export function SortableTaskList({
                 readOnly={readOnly}
                 taskTimerSeconds={taskTimerTotals[t.id] ?? 0}
                 initialExpanded={expandedTarefaId === t.id}
+                expandSignal={expandSignal}
                 onStatusChange={onStatusChange}
                 onAssigneeChange={onAssigneeChange}
                 onEdit={() => onEdit(t)}

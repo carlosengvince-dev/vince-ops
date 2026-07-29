@@ -18,9 +18,9 @@
   --spk-text: #16a34a;
   --spk-border: #16a34a;
 
-  --status-pendente-bg: #f0f0f0;
-  --status-pendente-text: #6b7280;
-  --status-pendente-border: #d1d5db;
+  --status-pendente-bg: #2563eb;
+  --status-pendente-text: #ffffff;
+  --status-pendente-border: #1d4ed8;
 
   --status-elaboracao-bg: #f59e0b;
   --status-elaboracao-text: #ffffff;
@@ -38,9 +38,9 @@
   --status-concluido-text: #ffffff;
   --status-concluido-border: #059669;
 
-  --status-naoaplic-bg: #e5e7eb;
-  --status-naoaplic-text: #9ca3af;
-  --status-naoaplic-border: #d1d5db;
+  --status-naoaplic-bg: #f5f5f4;
+  --status-naoaplic-text: #78716c;
+  --status-naoaplic-border: #d6d3d1;
 
   --proj-ativo-bg: #10b981;
   --proj-ativo-text: #ffffff;

@@ -23,7 +23,8 @@ const DOUGHNUT_ITEMS: {
   { key: 'em_elaboracao', label: 'Em elaboração', color: '#F59E0B' },
   { key: 'em_revisao', label: 'Em revisão', color: '#8B5CF6' },
   { key: 'bloqueado', label: 'Bloqueado', color: '#EF4444' },
-  { key: 'pendente', label: 'Pendente', color: '#E5E7EB' },
+  { key: 'pendente', label: 'Pendente', color: '#2563EB' },
+  { key: 'nao_aplica', label: 'Não aplica', color: '#D6D3D1' },
 ]
 
 interface DashboardChartsProps {

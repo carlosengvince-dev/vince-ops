@@ -31,6 +31,8 @@ interface TaskRowProps {
   onMove?: () => void
   onDelete?: () => void
   initialExpanded?: boolean
+  /** Quando `version` muda, força expanded para `open`. */
+  expandSignal?: { version: number; open: boolean } | null
   readOnly?: boolean
 }
 
@@ -45,6 +47,7 @@ export function TaskRow({
   onMove,
   onDelete,
   initialExpanded = false,
+  expandSignal = null,
   readOnly = false,
 }: TaskRowProps) {
   const [saving, setSaving] = useState(false)
@@ -60,6 +63,11 @@ export function TaskRow({
   useEffect(() => {
     if (initialExpanded) setExpanded(true)
   }, [initialExpanded, tarefa.id])
+
+  useEffect(() => {
+    if (!expandSignal) return
+    setExpanded(expandSignal.open)
+  }, [expandSignal])
 
   async function handleStatusChange(next: TarefaStatus) {
     if (!canEdit || next === tarefa.status) return
@@ -111,38 +119,15 @@ export function TaskRow({
             onClick={() => setExpanded((v) => !v)}
           >
             <span className="task-row__expand-icon" aria-hidden>
-              {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </span>
             <div className="task-row__main-content">
-              <p className="task-row__nome">{tarefa.nome}</p>
-              {tarefa.descricao ? (
-                <p className="task-row__descricao">{tarefa.descricao}</p>
-              ) : null}
-              <div className="task-row__badges">
-                <span className={`task-row__badge task-row__badge--${tarefa.criticidade}`}>
-                  {tarefa.criticidade === 'critico' ? 'Crítico' : 'Normal'}
-                </span>
-                <span
-                  className={[
-                    'task-row__badge',
-                    'task-row__badge--origem',
-                    `task-row__badge--${tarefa.origem.toLowerCase()}`,
-                    ORIGEM_DISCIPLINA_TONE[tarefa.origem.toLowerCase()]
-                      ? discToneClasses(ORIGEM_DISCIPLINA_TONE[tarefa.origem.toLowerCase()]!)
-                      : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                >
-                  {tarefa.origem === 'interno' ? 'Interno' : tarefa.origem}
-                </span>
-                {tarefa.referencia_normativa ? (
-                  <span className="task-row__ref">{tarefa.referencia_normativa}</span>
+              <div className="task-row__title-row">
+                <p className="task-row__nome">{tarefa.nome}</p>
+                {tarefa.criticidade === 'critico' ? (
+                  <span className="task-row__badge task-row__badge--critico">Crítico</span>
                 ) : null}
               </div>
-              {tarefa.motivo_bloqueio ? (
-                <p className="task-row__bloqueio">Bloqueio: {tarefa.motivo_bloqueio}</p>
-              ) : null}
             </div>
           </button>
           {showMenu ? (
@@ -151,48 +136,72 @@ export function TaskRow({
         </div>
 
         <div className="task-row__controls">
-          <div className="task-row__timer-row">
-            <div className="task-row__timer-actions">
-              <TimerButton tarefa={tarefa} papel={papel} readOnly={readOnly} />
-              <ManualHorasButton tarefa={tarefa} papel={papel} readOnly={readOnly} />
-            </div>
-            {timerLabel ? (
-              <span
-                className={`task-row__timer-total${isTimerActive ? ' task-row__timer-total--active' : ''}`}
-              >
-                {timerLabel}
-              </span>
-            ) : null}
+          <div className="task-row__timer-actions">
+            <TimerButton tarefa={tarefa} papel={papel} readOnly={readOnly} />
+            <ManualHorasButton tarefa={tarefa} papel={papel} readOnly={readOnly} />
           </div>
-          <div className="task-row__meta-row">
-            <TaskAssigneeDropdown
-              responsavelId={tarefa.responsavel_id}
-              responsavelNome={tarefa.responsavel_nome ?? null}
-              responsavelPapel={tarefa.responsavel_papel ?? null}
-              canAssign={canAssign}
-              users={profiles}
-              usersLoading={profilesLoading}
-              disabled={assigning || saving}
-              label={`Responsável de ${tarefa.nome}`}
-              onAssign={(id) => void handleAssigneeChange(id)}
-            />
-            <TaskStatusDropdown
-              value={tarefa.status}
-              disabled={!canEdit || saving || assigning}
-              label={`Status de ${tarefa.nome}`}
-              onChange={(status) => void handleStatusChange(status)}
-            />
-          </div>
-          {tarefa.data_conclusao ? (
-            <time className="task-row__data" dateTime={tarefa.data_conclusao}>
-              {new Date(tarefa.data_conclusao).toLocaleDateString('pt-BR')}
-            </time>
+          {timerLabel ? (
+            <span
+              className={`task-row__timer-total${isTimerActive ? ' task-row__timer-total--active' : ''}`}
+            >
+              {timerLabel}
+            </span>
           ) : null}
+          <TaskAssigneeDropdown
+            responsavelId={tarefa.responsavel_id}
+            responsavelNome={tarefa.responsavel_nome ?? null}
+            responsavelPapel={tarefa.responsavel_papel ?? null}
+            canAssign={canAssign}
+            users={profiles}
+            usersLoading={profilesLoading}
+            disabled={assigning || saving}
+            label={`Responsável de ${tarefa.nome}`}
+            onAssign={(id) => void handleAssigneeChange(id)}
+          />
+          <TaskStatusDropdown
+            value={tarefa.status}
+            disabled={!canEdit || saving || assigning}
+            label={`Status de ${tarefa.nome}`}
+            onChange={(status) => void handleStatusChange(status)}
+          />
         </div>
       </div>
 
       {expanded ? (
-        <>
+        <div className="task-row__expand">
+          {tarefa.data_conclusao ? (
+            <time className="task-row__data" dateTime={tarefa.data_conclusao}>
+              Concluída em {new Date(tarefa.data_conclusao).toLocaleDateString('pt-BR')}
+            </time>
+          ) : null}
+          {tarefa.descricao ? (
+            <p className="task-row__descricao">{tarefa.descricao}</p>
+          ) : null}
+          <div className="task-row__badges">
+            <span className={`task-row__badge task-row__badge--${tarefa.criticidade}`}>
+              {tarefa.criticidade === 'critico' ? 'Crítico' : 'Normal'}
+            </span>
+            <span
+              className={[
+                'task-row__badge',
+                'task-row__badge--origem',
+                `task-row__badge--${tarefa.origem.toLowerCase()}`,
+                ORIGEM_DISCIPLINA_TONE[tarefa.origem.toLowerCase()]
+                  ? discToneClasses(ORIGEM_DISCIPLINA_TONE[tarefa.origem.toLowerCase()]!)
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {tarefa.origem === 'interno' ? 'Interno' : tarefa.origem}
+            </span>
+            {tarefa.referencia_normativa ? (
+              <span className="task-row__ref">{tarefa.referencia_normativa}</span>
+            ) : null}
+          </div>
+          {tarefa.motivo_bloqueio ? (
+            <p className="task-row__bloqueio">Bloqueio: {tarefa.motivo_bloqueio}</p>
+          ) : null}
           <TaskCommentsPanel
             tarefaId={tarefa.id}
             projetoId={tarefa.projeto_id}
@@ -201,7 +210,7 @@ export function TaskRow({
             readOnly={readOnly}
           />
           <TaskTimeRecordsPanel tarefaId={tarefa.id} papel={papel} readOnly={readOnly} />
-        </>
+        </div>
       ) : null}
     </article>
   )

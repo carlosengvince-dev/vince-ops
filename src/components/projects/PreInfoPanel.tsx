@@ -32,8 +32,8 @@ interface PreInfoPanelProps {
 }
 
 export function PreInfoPanel({
-  nome,
-  clienteNome,
+  nome: _nome,
+  clienteNome: _clienteNome,
   documentos,
   embedded = false,
   readOnly = false,
@@ -122,16 +122,7 @@ export function PreInfoPanel({
     >
       <header className="pre-info-panel__header">
         <div>
-          {embedded ? (
-            <h2 className="pre-info-panel__title">Recebimento de documentos</h2>
-          ) : (
-            <>
-              <h1 className="pre-info-panel__title">{nome}</h1>
-              <p className="pre-info-panel__subtitle">
-                {clienteNome ?? 'Sem cliente'} · Recebimento de documentos
-              </p>
-            </>
-          )}
+          <h2 className="pre-info-panel__title">Recebimento de documentos</h2>
         </div>
         {canEdit && onAddDocumento ? (
           <Button variant="secondary" onClick={() => setAddOpen(true)}>

@@ -31,8 +31,8 @@ function avatarClass(papel: string): string {
 
 export function ActivityFeedPanel({
   projetoId,
-  nome,
-  clienteNome,
+  nome: _nome,
+  clienteNome: _clienteNome,
   enabled,
   refreshToken = 0,
 }: ActivityFeedPanelProps) {
@@ -53,8 +53,7 @@ export function ActivityFeedPanel({
     <div className="activity-feed">
       <header className="activity-feed__header">
         <div>
-          <h1 className="activity-feed__title">{nome}</h1>
-          <p className="activity-feed__subtitle">{clienteNome ?? 'Sem cliente'} · Atividade</p>
+          <h2 className="activity-feed__title">Atividade</h2>
         </div>
       </header>
 

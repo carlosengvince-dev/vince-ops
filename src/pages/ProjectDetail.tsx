@@ -63,6 +63,7 @@ import {
   type ProjetoHomeMetadataField,
 } from '../lib/projectHome'
 import { updateArtPorDisciplina } from '../lib/artPorDisciplina'
+import { updateChecklistCategoriaOrdem } from '../lib/checklistCategoriaOrdem'
 import { fetchResponsavelTecnicoById } from '../lib/responsavelTecnico'
 import { patchProjetoRpc } from '../lib/projetoRpc'
 import { supabase } from '../lib/supabase'
@@ -296,6 +297,27 @@ export default function ProjectDetail() {
       patchProjetoMetadata(next)
     },
     [patchProjetoMetadata, projeto],
+  )
+
+  const handleSaveCategoriaOrdem = useCallback(
+    async (orderedNames: string[]) => {
+      if (!projeto || !disciplinaAtiva || !faseAtiva) return
+      setActionError(null)
+      try {
+        const next = await updateChecklistCategoriaOrdem(
+          projeto.id,
+          projeto.metadata ?? {},
+          disciplinaAtiva,
+          faseAtiva,
+          orderedNames,
+        )
+        patchProjetoMetadata(next)
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Erro ao reordenar categorias')
+        throw err
+      }
+    },
+    [projeto, disciplinaAtiva, faseAtiva, patchProjetoMetadata],
   )
 
   const handleMetadataFieldSave = useCallback(
@@ -1076,6 +1098,8 @@ export default function ProjectDetail() {
               allTarefas={tarefas}
               papel={profile!.papel}
               taskTimerTotals={taskTimerTotals}
+              projetoMetadata={projeto.metadata ?? {}}
+              onSaveCategoriaOrdem={readOnly ? undefined : handleSaveCategoriaOrdem}
               onStatusChange={handleStatusChange}
               onAssigneeChange={handleAssigneeChange}
               onTarefaCreated={handleTarefaCreated}
