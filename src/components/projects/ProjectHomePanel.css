@@ -441,6 +441,19 @@
   gap: 10px;
 }
 
+.project-home__rt-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.project-home__rt-legacy {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--border);
+}
+
 .project-home__link-cancel {
   align-self: flex-start;
   padding: 0;

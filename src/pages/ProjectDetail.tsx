@@ -62,6 +62,9 @@ import {
   updateProjetoMetadataKey,
   type ProjetoHomeMetadataField,
 } from '../lib/projectHome'
+import { updateArtPorDisciplina } from '../lib/artPorDisciplina'
+import { fetchResponsavelTecnicoById } from '../lib/responsavelTecnico'
+import { patchProjetoRpc } from '../lib/projetoRpc'
 import { supabase } from '../lib/supabase'
 import { isProjetoHistoricoReadOnly, reabrirProjetoSuspenso } from '../lib/historico'
 import {
@@ -382,6 +385,58 @@ export default function ProjectDetail() {
       }
     },
     [projeto, patchProjeto],
+  )
+
+  const handleResponsavelTecnicoIdSave = useCallback(
+    async (rtId: string | null) => {
+      if (!projeto) return
+      setActionError(null)
+      try {
+        await patchProjetoRpc(projeto.id, { responsavel_tecnico_id: rtId })
+
+        if (!rtId) {
+          patchProjeto({ responsavel_tecnico_id: null, responsavelTecnico: null })
+          return
+        }
+
+        const rt = await fetchResponsavelTecnicoById(rtId)
+        patchProjeto({
+          responsavel_tecnico_id: rtId,
+          responsavelTecnico: rt
+            ? {
+                id: rt.id,
+                nome: rt.nome,
+                documento: rt.documento,
+                registro: rt.registro,
+              }
+            : null,
+        })
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Erro ao vincular responsável técnico')
+        throw err
+      }
+    },
+    [projeto, patchProjeto],
+  )
+
+  const handleArtDisciplinaSave = useCallback(
+    async (disciplina: Disciplina, value: string) => {
+      if (!projeto) return
+      setActionError(null)
+      try {
+        const next = await updateArtPorDisciplina(
+          projeto.id,
+          projeto.metadata ?? {},
+          disciplina,
+          value,
+        )
+        patchProjetoMetadata(next)
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Erro ao salvar ART')
+        throw err
+      }
+    },
+    [projeto, patchProjetoMetadata],
   )
 
   const handleAddDisciplina = useCallback(
@@ -909,6 +964,8 @@ export default function ProjectDetail() {
               tipoEdificacao={projeto.tipo_edificacao}
               clienteId={projeto.cliente_id}
               cliente={projeto.cliente}
+              responsavelTecnicoId={projeto.responsavel_tecnico_id ?? null}
+              responsavelTecnico={projeto.responsavelTecnico ?? null}
               metadata={projeto.metadata ?? {}}
               tiposEdificacao={tiposEdificacao}
               tarefas={tarefas}
@@ -918,6 +975,8 @@ export default function ProjectDetail() {
               onSaveEndereco={handleEnderecoSave}
               onSaveTipoEdificacao={handleTipoEdificacaoSave}
               onSaveClienteId={handleClienteIdSave}
+              onSaveResponsavelTecnicoId={handleResponsavelTecnicoIdSave}
+              onSaveArtDisciplina={handleArtDisciplinaSave}
               onAddDisciplina={handleAddDisciplina}
               onPrepareRemoveDisciplina={handlePrepareRemoveDisciplina}
               onRemoveDisciplina={handleRemoveDisciplina}

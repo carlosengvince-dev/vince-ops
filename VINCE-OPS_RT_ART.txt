@@ -1,0 +1,84 @@
+Revisei a migration `026_RT_ART_Migration.sql` e o que a Home/Configurações já fazem. O prompt está **bom e alinhado** com o produto, mas **não está pronto para executar sem 4 decisões** — se formos direto, o risco maior é legado de metadata e ambiguidade “desativar vs excluir”.
+
+---
+
+### Migration — o que está ok
+- Tabela no padrão de cadastro (`ativo`, `deleted_at`)
+- RLS só de `SELECT` + escrita via RPC (igual clientes)
+- `upsert` / `delete` com `assert_papel(gestor, diretor)`
+- Bloqueio de delete se houver projeto ativo/em_revisão vinculado
+- Coluna `projetos.responsavel_tecnico_id` nullable
+
+### Migration — gaps (não bloqueiam o front, mas vale notar)
+- `org_id` existe e **nunca é preenchido** no upsert
+- Falta `GRANT EXECUTE` nas RPCs (outras migrations do repo fazem isso)
+- Update sem checar `FOUND` (id inválido pode “passar” sem erro claro)
+
+Nada disso impede a feature se o banco já aceita as RPCs (você disse que a migration rodou).
+
+---
+
+### Prompt — pontos fortes
+- RT como entidade (não texto livre) + documento/registro só leitura
+- `RtSelect` no padrão `ClientSelect` (UX já conhecida)
+- ART por disciplina ativa, espelhando EMASA/CBMSC
+- Settings no padrão Sistema
+- Permissão bate: `editar_projeto` é gestor/diretor, igual às RPCs de RT
+
+---
+
+### Pontos fracos / o que falta definir
+
+**1. Dados legados (crítico)**  
+Hoje a Home grava `metadata.nome_rt`, `numero_crea_cau`, `numero_art`. O prompt não diz o que fazer com projetos que já têm isso.
+
+Sugestão:
+- UI nova ignora esses campos
+- Se existir `numero_art` e ainda não houver `art_por_disciplina`, **migrar na leitura** (uma vez) para a 1ª disciplina do projeto (ou HID se existir)
+- `nome_rt` / `numero_crea_cau`: mostrar aviso discreto “RT legado — vincule um RT cadastrado” **ou** só descartar da UI
+
+**2. “Desativar” vs `delete_responsavel_tecnico`**  
+Prompt: desativar + ConfirmModal. Migration: soft-delete (`deleted_at`) **e** flag `ativo`.
+
+Sugestão (padrão limpo):
+- Lista Settings = só `ativo = true` e `deleted_at is null`
+- Desativar = `upsert(..., p_ativo: false)` (some da lista/select)
+- Excluir (soft-delete) = `delete_responsavel_tecnico` só se quiserem ação destrutiva; senão **só desativar** na v1
+
+**3. Trocar / desvincular RT**  
+Prompt cobre “vincular”, não “trocar” nem “remover vínculo”.
+
+Sugestão: igual cliente — select sempre disponível com RT atual; opção “Remover vínculo” (ou limpar) setando `responsavel_tecnico_id = null`.
+
+**4. Quem cria RT na Home**  
+`+ Novo RT` chama upsert (só gestor). `canEdit` da Home também. Ok.  
+Mas: projetista vê só leitura (sem Vincular) — confirmar se é o desejado.
+
+**5. `ClientSelect` “EXATAMENTE”**  
+Não dá para reutilizar o componente de cliente tal qual.  
+Sugestão: `RtSelect` + CSS compartilhado / cópia do padrão (busca, `+ Novo RT`, modal) — mesma UX, entidade certa.
+
+**6. ART e disciplina removida**  
+Se tirar PPCI do projeto, a key `art_por_disciplina.PPCI` fica no metadata.
+
+Sugestão: **não apagar** automaticamente (evita perda); só renderizar disciplinas ativas. Simples e seguro.
+
+**7. Carregar documento/registro**  
+Precisa join/fetch do RT no detalhe do projeto (`responsavel_tecnico_id` + dados). Prompt não cita — entra no plano técnico.
+
+---
+
+### Minha recomendação para o aceite
+
+Seguir o prompt **com estes defaults**:
+
+| # | Decisão |
+|---|--------|
+| A | Legado: ART antiga → seed em `art_por_disciplina` na 1ª disciplina (ou HID); `nome_rt`/`crea` saem da UI |
+| B | Settings: só **desativar** (`ativo=false`); sem delete na v1 (RPC delete fica no banco) |
+| C | Home: permitir **trocar** RT e **desvincular** |
+| D | `RtSelect` novo no padrão ClientSelect (não reusar o componente de cliente) |
+| E | ART órfã de disciplina removida: manter no metadata, não renderizar |
+
+Se fechar isso (ou ajustar A–E), monto o planinho e executo.  
+Se quiser **só** o prompt cru sem legado/desvincular, também dá — mas projetos antigos com RT em texto livre ficam “invisíveis” na Home nova.

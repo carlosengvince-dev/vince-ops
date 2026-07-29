@@ -1,0 +1,72 @@
+.rt-settings__table-wrap {
+  overflow-x: auto;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.rt-settings__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.rt-settings__table th,
+.rt-settings__table td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 0.5px solid var(--border);
+  vertical-align: middle;
+}
+
+.rt-settings__table th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+.rt-settings__table tr:last-child td {
+  border-bottom: none;
+}
+
+.rt-settings__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.rt-settings__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.rt-settings__icon:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+}
+
+.rt-settings__link-danger {
+  border: none;
+  background: transparent;
+  color: var(--status-bloqueado-border);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rt-settings__link-danger:hover {
+  text-decoration: underline;
+}

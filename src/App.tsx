@@ -34,6 +34,7 @@ import SettingsTemplatesFases from './pages/settings/SettingsTemplatesFases'
 import SettingsSistemaDocumentos from './pages/settings/SettingsSistemaDocumentos'
 import SettingsSistemaTiposEdificacao from './pages/settings/SettingsSistemaTiposEdificacao'
 import SettingsSistemaCamposProjeto from './pages/settings/SettingsSistemaCamposProjeto'
+import SettingsSistemaResponsaveisTecnicos from './pages/settings/SettingsSistemaResponsaveisTecnicos'
 import SettingsSistemaPadroesRestauracao from './pages/settings/SettingsSistemaPadroesRestauracao'
 
 function AppRoutes() {
@@ -149,6 +150,7 @@ function AppRoutes() {
                 </PermittedRoute>
               }
             />
+            <Route path="responsaveis-tecnicos" element={<SettingsSistemaResponsaveisTecnicos />} />
             <Route path="padroes-restauracao" element={<SettingsSistemaPadroesRestauracao />} />
           </Route>
         </Route>

@@ -7,6 +7,7 @@ const SUBSECTIONS = [
   { to: 'documentos', label: 'Documentos PRÉ-INFO' },
   { to: 'tipos-edificacao', label: 'Tipos de edificação' },
   { to: 'campos-projeto', label: 'Campos do projeto' },
+  { to: 'responsaveis-tecnicos', label: 'Responsáveis Técnicos' },
   { to: 'padroes-restauracao', label: 'Padrões e restauração', gestorOnly: true as const },
 ] as const
 

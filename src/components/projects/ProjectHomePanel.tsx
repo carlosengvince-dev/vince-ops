@@ -29,6 +29,12 @@ import { ProjectStatusDropdown } from './ProjectStatusDropdown'
 import { ClientSelect } from '../clients/ClientSelect'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import { Modal } from '../ui/Modal'
+import { RtFormModal } from './RtFormModal'
+import { RtSelect } from './RtSelect'
+import { parseArtPorDisciplina } from '../../lib/artPorDisciplina'
+import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
+import { upsertResponsavelTecnicoRpc } from '../../lib/responsavelTecnico'
+import type { ResponsavelTecnico } from '../../types'
 import './ProjectHomePanel.css'
 
 export interface ProjectHomeCliente {
@@ -37,6 +43,11 @@ export interface ProjectHomeCliente {
   contato: string | null
   email: string | null
 }
+
+export type ProjectHomeResponsavelTecnico = Pick<
+  ResponsavelTecnico,
+  'id' | 'nome' | 'documento' | 'registro'
+>
 
 interface ProjectHomePanelProps {
   projetoId: string
@@ -48,6 +59,8 @@ interface ProjectHomePanelProps {
   tipoEdificacao: string | null
   clienteId: string | null
   cliente: ProjectHomeCliente | null
+  responsavelTecnicoId: string | null
+  responsavelTecnico: ProjectHomeResponsavelTecnico | null
   metadata: Record<string, unknown>
   tiposEdificacao: string[]
   tarefas: Tarefa[]
@@ -57,6 +70,8 @@ interface ProjectHomePanelProps {
   onSaveEndereco: (value: string) => Promise<void>
   onSaveTipoEdificacao: (value: string) => Promise<void>
   onSaveClienteId: (clienteId: string | null) => Promise<void>
+  onSaveResponsavelTecnicoId: (rtId: string | null) => Promise<void>
+  onSaveArtDisciplina: (disciplina: Disciplina, value: string) => Promise<void>
   onAddDisciplina: (
     disciplina: Disciplina,
     metodologia: Metodologia,
@@ -109,6 +124,8 @@ export function ProjectHomePanel({
   tipoEdificacao,
   clienteId,
   cliente,
+  responsavelTecnicoId,
+  responsavelTecnico,
   metadata,
   tiposEdificacao,
   tarefas,
@@ -118,6 +135,8 @@ export function ProjectHomePanel({
   onSaveEndereco,
   onSaveTipoEdificacao,
   onSaveClienteId,
+  onSaveResponsavelTecnicoId,
+  onSaveArtDisciplina,
   onAddDisciplina,
   onPrepareRemoveDisciplina,
   onRemoveDisciplina,
@@ -147,6 +166,10 @@ export function ProjectHomePanel({
   const numero = formatNumeroProjeto(numeroSequencial)
 
   const [linkingCliente, setLinkingCliente] = useState(false)
+  const [linkingRt, setLinkingRt] = useState(false)
+  const [rtModalOpen, setRtModalOpen] = useState(false)
+  const [rtSaving, setRtSaving] = useState(false)
+  const [rtSelectKey, setRtSelectKey] = useState(0)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [savedKey, setSavedKey] = useState<string | null>(null)
@@ -556,23 +579,45 @@ export function ProjectHomePanel({
     },
   ]
 
-  const rtFields: FieldConfig[] = [
-    { key: 'nome_rt', label: 'Nome do RT', type: 'text', storage: 'metadata' },
-    {
-      key: 'numero_art',
-      label: 'Número ART',
-      type: 'text',
-      placeholder: 'Ex: SC-123456',
-      storage: 'metadata',
-    },
-    {
-      key: 'numero_crea_cau',
-      label: 'Número CREA/CAU',
-      type: 'text',
-      placeholder: 'Ex: 12345-D/SC',
-      storage: 'metadata',
-    },
-  ]
+  const artPorDisciplina = useMemo(() => parseArtPorDisciplina(metadata), [metadata])
+
+  const artFields: FieldConfig[] = useMemo(
+    () =>
+      disciplinas.map((disc) => ({
+        key: `art:${disc}`,
+        label: `ART — ${getDisciplinaLabel(disc)}`,
+        type: 'text' as const,
+        placeholder: 'Ex: SC-123456',
+        storage: 'custom' as const,
+      })),
+    [disciplinas],
+  )
+
+  const showLegacyRt =
+    !responsavelTecnicoId && Boolean(meta.nome_rt?.trim() || meta.numero_crea_cau?.trim())
+
+  async function handleRtLinked(rtId: string | null) {
+    await onSaveResponsavelTecnicoId(rtId)
+    setLinkingRt(false)
+  }
+
+  async function handleCreateRt(data: { nome: string; documento: string; registro: string }) {
+    setRtSaving(true)
+    try {
+      const id = await upsertResponsavelTecnicoRpc({
+        nome: data.nome,
+        documento: data.documento,
+        registro: data.registro,
+        ativo: true,
+      })
+      setRtSelectKey((k) => k + 1)
+      await onSaveResponsavelTecnicoId(id)
+      setLinkingRt(false)
+      setRtModalOpen(false)
+    } finally {
+      setRtSaving(false)
+    }
+  }
 
   return (
     <div className="project-home">
@@ -904,23 +949,107 @@ export function ProjectHomePanel({
 
             <div className="project-home__protocol-block">
               <h3 className="project-home__protocol-title">RT</h3>
-              <div className="project-home__grid">
-                {rtFields.map((field) => (
-                  <InlineField
-                    key={field.key}
-                    field={field}
-                    value={readValue(field)}
-                    canEdit={canEdit}
-                    editing={editingKey === field.key}
-                    draft={editingKey === field.key ? draft : ''}
-                    saved={savedKey === field.key}
-                    onStartEdit={() => startEdit(field)}
-                    onDraftChange={setDraft}
-                    onCommit={() => void commitField(field)}
-                    onCancel={cancelEdit}
-                  />
-                ))}
-              </div>
+
+              {responsavelTecnico || linkingRt ? (
+                <div className="project-home__rt-block">
+                  {canEdit ? (
+                    <div className="project-home__link-client">
+                      <RtSelect
+                        key={rtSelectKey}
+                        value={responsavelTecnicoId}
+                        onChange={(id) => void handleRtLinked(id)}
+                        onNewRt={() => setRtModalOpen(true)}
+                        allowClear
+                      />
+                      {linkingRt && !responsavelTecnicoId ? (
+                        <button
+                          type="button"
+                          className="project-home__link-cancel"
+                          onClick={() => setLinkingRt(false)}
+                        >
+                          Cancelar
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="project-home__readonly-grid">
+                      <ReadonlyRow label="Nome" value={responsavelTecnico?.nome ?? null} />
+                    </div>
+                  )}
+                  {responsavelTecnico ? (
+                    <div className="project-home__readonly-grid">
+                      <ReadonlyRow label="Documento" value={responsavelTecnico.documento} />
+                      <ReadonlyRow label="Registro (CREA/CAU)" value={responsavelTecnico.registro} />
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="project-home__empty-client">
+                  <p>Nenhum responsável técnico vinculado a este projeto.</p>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      className="project-home__link-btn"
+                      onClick={() => setLinkingRt(true)}
+                    >
+                      Vincular RT
+                    </button>
+                  ) : (
+                    <span className="project-home__muted">—</span>
+                  )}
+                </div>
+              )}
+
+              {showLegacyRt ? (
+                <div className="project-home__readonly-grid project-home__rt-legacy">
+                  <p className="project-home__muted">
+                    Dados legados (texto livre) — vincule um RT cadastrado para substituí-los.
+                  </p>
+                  {meta.nome_rt?.trim() ? (
+                    <ReadonlyRow label="Nome do RT (legado)" value={meta.nome_rt} />
+                  ) : null}
+                  {meta.numero_crea_cau?.trim() ? (
+                    <ReadonlyRow label="CREA/CAU (legado)" value={meta.numero_crea_cau} />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {artFields.length > 0 ? (
+                <div className="project-home__grid">
+                  {artFields.map((field) => {
+                    const disc = field.key.replace('art:', '') as Disciplina
+                    const value = artPorDisciplina[disc] ?? ''
+                    return (
+                      <InlineField
+                        key={field.key}
+                        field={field}
+                        value={value}
+                        canEdit={canEdit}
+                        editing={editingKey === field.key}
+                        draft={editingKey === field.key ? draft : ''}
+                        saved={savedKey === field.key}
+                        onStartEdit={() => {
+                          setEditingKey(field.key)
+                          setDraft(value)
+                        }}
+                        onDraftChange={setDraft}
+                        onCommit={() => {
+                          void (async () => {
+                            await onSaveArtDisciplina(disc, draft)
+                            setEditingKey(null)
+                            setSavedKey(field.key)
+                            window.setTimeout(() => setSavedKey(null), 1500)
+                          })()
+                        }}
+                        onCancel={() => {
+                          setEditingKey(null)
+                          setDraft('')
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
           </HomeSection>
 
@@ -1084,6 +1213,15 @@ export function ProjectHomePanel({
           </select>
         </label>
       </Modal>
+
+      <RtFormModal
+        open={rtModalOpen}
+        saving={rtSaving}
+        onClose={() => {
+          if (!rtSaving) setRtModalOpen(false)
+        }}
+        onSubmit={handleCreateRt}
+      />
     </div>
   )
 }

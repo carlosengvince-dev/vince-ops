@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { ProjetoFaseOverride } from '../lib/faseConfig'
 import { mergeTarefasFromRemote } from '../lib/projectTasks'
-import type { DocumentoProjeto, Papel, Projeto, Tarefa } from '../types'
+import type { DocumentoProjeto, Papel, Projeto, ResponsavelTecnico, Tarefa } from '../types'
 import type { ProjectHomeCliente } from '../components/projects/ProjectHomePanel'
 
 const detailCache = new Map<string, ProjectDetailData>()
@@ -34,6 +34,7 @@ export interface ProjectDetailData {
   projeto: Projeto & {
     cliente_nome: string | null
     cliente: ProjectHomeCliente | null
+    responsavelTecnico: Pick<ResponsavelTecnico, 'id' | 'nome' | 'documento' | 'registro'> | null
   }
   tarefas: Tarefa[]
   documentos: DocumentoProjeto[]
@@ -46,6 +47,7 @@ type ProjetoPatch = Partial<
     | 'endereco'
     | 'tipo_edificacao'
     | 'cliente_id'
+    | 'responsavel_tecnico_id'
     | 'metadata'
     | 'disciplinas'
     | 'metodologia'
@@ -58,6 +60,7 @@ type ProjetoPatch = Partial<
 > & {
   cliente_nome?: string | null
   cliente?: ProjectHomeCliente | null
+  responsavelTecnico?: ProjectDetailData['projeto']['responsavelTecnico']
 }
 
 function mapTarefaRow(raw: Record<string, unknown>): Tarefa {
@@ -112,7 +115,9 @@ export function useProjectDetail(projectId: string | undefined) {
     const [projetoRes, tarefasRes, documentosRes, projetoFasesRes] = await Promise.all([
       supabase
         .from('projetos')
-        .select('*, clientes(nome, cnpj_cpf, contato, email)')
+        .select(
+          '*, clientes(nome, cnpj_cpf, contato, email), responsaveis_tecnicos!responsavel_tecnico_id(id, nome, documento, registro)',
+        )
         .eq('id', projectId)
         .is('deleted_at', null)
         .maybeSingle(),
@@ -155,10 +160,18 @@ export function useProjectDetail(projectId: string | undefined) {
       contato: string | null
       email: string | null
     } | null
+    const rtRow = row.responsaveis_tecnicos as {
+      id: string
+      nome: string
+      documento: string | null
+      registro: string | null
+    } | null
+
+    const { clientes: _c, responsaveis_tecnicos: _rt, ...projetoRest } = row
 
     const nextData: ProjectDetailData = {
       projeto: {
-        ...(row as unknown as Projeto),
+        ...(projetoRest as unknown as Projeto),
         cliente_nome: clienteRow?.nome ?? null,
         cliente: clienteRow
           ? {
@@ -166,6 +179,14 @@ export function useProjectDetail(projectId: string | undefined) {
               cnpj_cpf: clienteRow.cnpj_cpf,
               contato: clienteRow.contato,
               email: clienteRow.email,
+            }
+          : null,
+        responsavelTecnico: rtRow
+          ? {
+              id: rtRow.id,
+              nome: rtRow.nome,
+              documento: rtRow.documento,
+              registro: rtRow.registro,
             }
           : null,
       },

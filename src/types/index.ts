@@ -116,6 +116,7 @@ export interface Projeto {
   numero_sequencial: number
   nome: string
   cliente_id: string | null
+  responsavel_tecnico_id: string | null
   endereco: string | null
   tipo_edificacao: string | null
   area_m2: number | null
@@ -138,6 +139,18 @@ export interface Projeto {
   created_at: string
   updated_at: string
   created_by: string | null
+}
+
+export interface ResponsavelTecnico {
+  id: string
+  org_id: string | null
+  nome: string
+  documento: string | null
+  registro: string | null
+  ativo: boolean
+  deleted_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 /** Fase atual por disciplina + fases concluídas externamente (modo em_andamento). */
