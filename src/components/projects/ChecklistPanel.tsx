@@ -152,7 +152,7 @@ export function ChecklistPanel({
   const [ocultarConcluidos, setOcultarConcluidos] = useState(false)
   const [criticosNoTopo, setCriticosNoTopo] = useState(false)
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({})
-  const [viewbarOpen, setViewbarOpen] = useState(true)
+  const [viewbarOpen, setViewbarOpen] = useState(false)
   const [tasksExpandSignal, setTasksExpandSignal] = useState<{
     version: number
     open: boolean
