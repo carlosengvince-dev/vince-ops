@@ -81,6 +81,8 @@ export function filterTemplatesForNovaDisciplina(
     faseEntrada: {},
     selectedTemplateIds,
     disabledTemplateIds: new Set(),
+    disabledFaseKeys: new Set(),
+    faseSelectionStash: {},
   }
   return filterTemplatesForMode(templates, 'em_andamento', form, checklist)
 }
@@ -100,6 +102,23 @@ export function filterTemplatesForDisciplinaMetodologia(
       FASES_COM_CHECKLIST.includes(t.fase as Fase) &&
       templateAppliesToMetodologia(t, metodologia),
   )
+}
+
+export async function importFaseTemplatesToProjeto(params: {
+  projetoId: string
+  disciplina: Disciplina
+  fase: Fase
+  metodologia: Metodologia
+}): Promise<Tarefa[]> {
+  const allTemplates = await fetchActiveTemplates([params.disciplina])
+  const selected = allTemplates.filter(
+    (t) =>
+      t.disciplina === params.disciplina &&
+      t.fase === params.fase &&
+      FASES_COM_CHECKLIST.includes(t.fase as Fase) &&
+      templateAppliesToMetodologia(t, params.metodologia),
+  )
+  return copyTemplatesToTarefas(params.projetoId, selected)
 }
 
 export interface AddDisciplinaInput {

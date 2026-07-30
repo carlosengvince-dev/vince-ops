@@ -54,12 +54,18 @@ export interface ChecklistSelectionState {
   selectedTemplateIds: Set<string>
   /** IDs desmarcados no modo novo (todas ativas por padrão) */
   disabledTemplateIds: Set<string>
+  /** Fases excluídas do projeto: `${disciplina}|${fase}` */
+  disabledFaseKeys: Set<string>
+  /** Snapshot da seleção de tarefas antes de desligar a fase */
+  faseSelectionStash: Record<string, string[]>
 }
 
 export const EMPTY_CHECKLIST_SELECTION: ChecklistSelectionState = {
   faseEntrada: {},
   selectedTemplateIds: new Set(),
   disabledTemplateIds: new Set(),
+  disabledFaseKeys: new Set(),
+  faseSelectionStash: {},
 }
 
 export interface CreateProjectPayload {

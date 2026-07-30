@@ -47,6 +47,8 @@ interface CreateProjectDraft {
     faseEntrada: ChecklistSelectionState['faseEntrada']
     selectedTemplateIds: string[]
     disabledTemplateIds: string[]
+    disabledFaseKeys: string[]
+    faseSelectionStash: Record<string, string[]>
   }
 }
 
@@ -62,6 +64,8 @@ function serializeChecklist(checklist: ChecklistSelectionState) {
     faseEntrada: checklist.faseEntrada,
     selectedTemplateIds: Array.from(checklist.selectedTemplateIds),
     disabledTemplateIds: Array.from(checklist.disabledTemplateIds),
+    disabledFaseKeys: Array.from(checklist.disabledFaseKeys),
+    faseSelectionStash: checklist.faseSelectionStash,
   }
 }
 
@@ -69,9 +73,11 @@ function deserializeChecklist(
   data: CreateProjectDraft['checklist'],
 ): ChecklistSelectionState {
   return {
-    faseEntrada: data.faseEntrada,
-    selectedTemplateIds: new Set(data.selectedTemplateIds),
-    disabledTemplateIds: new Set(data.disabledTemplateIds),
+    faseEntrada: data.faseEntrada ?? {},
+    selectedTemplateIds: new Set(data.selectedTemplateIds ?? []),
+    disabledTemplateIds: new Set(data.disabledTemplateIds ?? []),
+    disabledFaseKeys: new Set(data.disabledFaseKeys ?? []),
+    faseSelectionStash: data.faseSelectionStash ?? {},
   }
 }
 
@@ -148,11 +154,7 @@ export default function CreateProject() {
   function handleSelectModo(nextModo: ModoCriacao) {
     setModo(nextModo)
     setForm(EMPTY_PROJECT_FORM)
-    setChecklist({
-      faseEntrada: {},
-      selectedTemplateIds: new Set(),
-      disabledTemplateIds: new Set(),
-    })
+    setChecklist(EMPTY_CHECKLIST_SELECTION)
     setFieldErrors({})
     setChecklistError(null)
     setSubmitError(null)

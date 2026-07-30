@@ -28,6 +28,7 @@ import {
 import { fetchActiveProfiles } from '../lib/profiles'
 import {
   addDisciplinaToProjeto,
+  importFaseTemplatesToProjeto,
   removeDisciplinaFromProjeto,
 } from '../lib/projetoDisciplinas'
 import { fetchProjectRevisoes } from '../lib/revisoes'
@@ -667,6 +668,44 @@ export default function ProjectDetail() {
     [profile, projeto, bumpActivityFeed, refresh],
   )
 
+  const handleImportFaseTemplates = useCallback(
+    async (params: { disciplina: Disciplina; fase: Fase }) => {
+      if (!profile || !projeto) return
+      setActionError(null)
+      try {
+        const metodologia = projeto.metodologia[params.disciplina] ?? '2D'
+        const tarefasCriadas = await importFaseTemplatesToProjeto({
+          projetoId: projeto.id,
+          disciplina: params.disciplina,
+          fase: params.fase,
+          metodologia,
+        })
+        if (tarefasCriadas.length > 0) {
+          appendTarefas(tarefasCriadas)
+        }
+        void logActivity({
+          projetoId: projeto.id,
+          usuarioId: profile.id,
+          tipo: 'projeto_status_alterado',
+          descricao: `${profile.nome} importou tarefas do template para ${params.fase} (${params.disciplina})`,
+          metadata: {
+            acao: 'fase_import_template',
+            disciplina: params.disciplina,
+            fase: params.fase,
+            count: tarefasCriadas.length,
+          },
+        })
+        bumpActivityFeed()
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Erro ao importar tarefas do template'
+        setActionError(message)
+        throw err
+      }
+    },
+    [profile, projeto, appendTarefas, bumpActivityFeed],
+  )
+
   const handleTarefaCreated = useCallback(
     (tarefa: Tarefa) => {
       appendTarefa(tarefa)
@@ -1017,6 +1056,7 @@ export default function ProjectDetail() {
               projetoFaseOverrides={projetoFaseOverrides}
               estruturaFases={estruturaFases}
               onToggleProjetoFase={handleToggleProjetoFase}
+              onImportFaseTemplates={handleImportFaseTemplates}
             />
           ) : mainTab === 'atividade' ? (
             <ActivityFeedPanel

@@ -55,7 +55,7 @@ function fallbackFases(disciplina: Disciplina): FaseConfig[] {
     codigo,
     label: PHASE_LABELS[codigo] ?? codigo,
     ordem,
-    obrigatoria: codigo === 'PRE_INFO' || codigo === 'ENTREGA',
+    obrigatoria: false,
     sistema: true,
     ativo: true,
   }))
@@ -346,7 +346,7 @@ export function getFrozenPhasesForDisciplina(
       codigo: f.codigo,
       label: f.label,
       ordem: f.ordem,
-      obrigatoria: f.codigo === 'PRE_INFO' || f.codigo === 'ENTREGA',
+      obrigatoria: false,
       sistema: true,
       ativo: true,
     }))

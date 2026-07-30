@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { getDisciplinaLabel } from '../../lib/disciplinaConfig'
 import { getFaseIndex } from '../../lib/constants'
 import { getFasesComChecklist, getPhaseLabel, getPhaseSequence } from '../../lib/faseConfig'
@@ -50,7 +51,10 @@ function isVisibleInEmAndamento(
   template: TemplateChecklist,
   faseEntrada: Fase,
 ): boolean {
-  return getFaseIndex(template.disciplina, template.fase as Fase) >= getFaseIndex(template.disciplina, faseEntrada)
+  return (
+    getFaseIndex(template.disciplina, template.fase as Fase) >=
+    getFaseIndex(template.disciplina, faseEntrada)
+  )
 }
 
 function buildDefaultEmAndamentoSelection(
@@ -71,23 +75,27 @@ function buildDefaultEmAndamentoSelection(
   return ids
 }
 
+function faseKey(disciplina: Disciplina, fase: Fase): string {
+  return `${disciplina}|${fase}`
+}
+
+function catKey(disciplina: Disciplina, fase: Fase, categoria: string): string {
+  return `${disciplina}|${fase}|${categoria}`
+}
+
 export function validateChecklistStep(
   modo: ModoCriacao,
   checklist: ChecklistSelectionState,
   templates: TemplateChecklist[],
   form: ProjectFormData,
 ): string | null {
-  const filtered = filterTemplatesForForm(templates, form)
-
   if (modo === 'novo') {
-    const enabled = filtered.filter((t) => !checklist.disabledTemplateIds.has(t.id))
-    if (enabled.length === 0) {
-      return 'Selecione ao menos uma tarefa do checklist.'
-    }
+    // 0 tarefas do template é válido (projeto sem checklist padrão)
     return null
   }
 
   if (modo === 'em_andamento') {
+    const filtered = filterTemplatesForForm(templates, form)
     for (const disciplina of form.disciplinas) {
       if (!checklist.faseEntrada[disciplina]) {
         return `Defina a fase de entrada para ${getDisciplinaLabel(disciplina)}.`
@@ -108,13 +116,44 @@ export function countTasksToCreate(
   templates: TemplateChecklist[],
   form: ProjectFormData,
 ): number {
-  const filtered = filterTemplatesForForm(templates, form)
+  const filtered = filterTemplatesForForm(templates, form).filter(
+    (t) => !checklist.disabledFaseKeys.has(faseKey(t.disciplina, t.fase as Fase)),
+  )
 
   if (modo === 'novo') {
     return filtered.filter((t) => !checklist.disabledTemplateIds.has(t.id)).length
   }
 
   return filtered.filter((t) => checklist.selectedTemplateIds.has(t.id)).length
+}
+
+function IndeterminateCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+  'aria-label': ariaLabel,
+}: {
+  checked: boolean
+  indeterminate: boolean
+  onChange: (checked: boolean) => void
+  'aria-label': string
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate
+  }, [indeterminate])
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={checked}
+      aria-label={ariaLabel}
+      onChange={(e) => onChange(e.target.checked)}
+      onClick={(e) => e.stopPropagation()}
+    />
+  )
 }
 
 interface StepChecklistSelectProps {
@@ -135,6 +174,11 @@ export function StepChecklistSelect({
   const [templates, setTemplates] = useState<TemplateChecklist[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [faseToggleWarning, setFaseToggleWarning] = useState<string | null>(null)
+  /** true = recolhida; ausente = recolhida por padrão; false = expandida */
+  const [faseCollapsed, setFaseCollapsed] = useState<Record<string, boolean>>({})
+  /** true = recolhida; ausente = recolhida por padrão; false = expandida */
+  const [catCollapsed, setCatCollapsed] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let mounted = true
@@ -179,46 +223,164 @@ export function StepChecklistSelect({
     [templates, form],
   )
 
+  const visible = useMemo(() => {
+    if (modo !== 'em_andamento') return filtered
+    return filtered.filter((t) => {
+      const entrada = checklist.faseEntrada[t.disciplina] ?? 'INFO_GERAL'
+      return isVisibleInEmAndamento(t, entrada)
+    })
+  }, [filtered, modo, checklist.faseEntrada])
+
   const grouped = useMemo(() => groupTemplates(filtered), [filtered])
 
   const taskCount = countTasksToCreate(modo, checklist, templates, form)
+  const disabledFaseCount = checklist.disabledFaseKeys.size
+
+  function isFaseIncluded(disciplina: Disciplina, fase: Fase): boolean {
+    return !checklist.disabledFaseKeys.has(faseKey(disciplina, fase))
+  }
 
   function isTaskEnabled(template: TemplateChecklist): boolean {
+    if (!isFaseIncluded(template.disciplina, template.fase as Fase)) return false
     if (modo === 'novo') {
       return !checklist.disabledTemplateIds.has(template.id)
     }
     return checklist.selectedTemplateIds.has(template.id)
   }
 
-  function setTaskEnabled(template: TemplateChecklist, enabled: boolean) {
+  function setTasksEnabled(items: TemplateChecklist[], enabled: boolean) {
+    if (items.length === 0) return
+
     if (modo === 'novo') {
       const disabledTemplateIds = new Set(checklist.disabledTemplateIds)
-      if (enabled) {
-        disabledTemplateIds.delete(template.id)
-      } else {
-        disabledTemplateIds.add(template.id)
+      for (const template of items) {
+        if (enabled) disabledTemplateIds.delete(template.id)
+        else disabledTemplateIds.add(template.id)
       }
       onChange({ ...checklist, disabledTemplateIds })
       return
     }
 
     const selectedTemplateIds = new Set(checklist.selectedTemplateIds)
-    if (enabled) {
-      selectedTemplateIds.add(template.id)
-    } else {
-      selectedTemplateIds.delete(template.id)
+    for (const template of items) {
+      if (enabled) selectedTemplateIds.add(template.id)
+      else selectedTemplateIds.delete(template.id)
     }
     onChange({ ...checklist, selectedTemplateIds })
   }
 
-  function setCategoryEnabled(templatesInCategory: TemplateChecklist[], enabled: boolean) {
-    for (const template of templatesInCategory) {
-      setTaskEnabled(template, enabled)
-    }
+  function setTaskEnabled(template: TemplateChecklist, enabled: boolean) {
+    if (!isFaseIncluded(template.disciplina, template.fase as Fase)) return
+    setTasksEnabled([template], enabled)
   }
 
-  function isCategoryFullyEnabled(templatesInCategory: TemplateChecklist[]): boolean {
-    return templatesInCategory.every((t) => isTaskEnabled(t))
+  function setCategoryEnabled(templatesInCategory: TemplateChecklist[], enabled: boolean) {
+    setTasksEnabled(templatesInCategory, enabled)
+  }
+
+  function getVisibleFasesForDisciplina(
+    disciplina: Disciplina,
+    fasesOrdenadas: Fase[],
+  ): Fase[] {
+    if (modo !== 'em_andamento') return fasesOrdenadas
+    const entrada = checklist.faseEntrada[disciplina] ?? 'INFO_GERAL'
+    return fasesOrdenadas.filter(
+      (fase) => getFaseIndex(disciplina, fase) >= getFaseIndex(disciplina, entrada),
+    )
+  }
+
+  function setFaseIncluded(disciplina: Disciplina, fase: Fase, included: boolean) {
+    const key = faseKey(disciplina, fase)
+    const discGroup = grouped[disciplina]
+    const categorias = discGroup?.[fase]
+    const faseItems = categorias ? Object.values(categorias).flat() : []
+
+    if (!included) {
+      if (modo === 'em_andamento' && (checklist.faseEntrada[disciplina] ?? 'INFO_GERAL') === fase) {
+        setFaseToggleWarning(
+          'Não é possível desligar a fase de entrada. Altere a fase de entrada antes.',
+        )
+        return
+      }
+
+      const fasesOrdenadas = getPhaseSequence(disciplina).filter(
+        (f) => discGroup?.[f as Fase],
+      ) as Fase[]
+      const visible = getVisibleFasesForDisciplina(disciplina, fasesOrdenadas)
+      const remaining = visible.filter(
+        (f) => f !== fase && !checklist.disabledFaseKeys.has(faseKey(disciplina, f)),
+      )
+      if (remaining.length === 0) {
+        setFaseToggleWarning(
+          `Mantenha ao menos uma fase ativa em ${getDisciplinaLabel(disciplina)}.`,
+        )
+        return
+      }
+
+      setFaseToggleWarning(null)
+
+      const stashIds = faseItems.filter((t) => {
+        if (modo === 'novo') return !checklist.disabledTemplateIds.has(t.id)
+        return checklist.selectedTemplateIds.has(t.id)
+      }).map((t) => t.id)
+
+      const disabledFaseKeys = new Set(checklist.disabledFaseKeys)
+      disabledFaseKeys.add(key)
+      const faseSelectionStash = { ...checklist.faseSelectionStash, [key]: stashIds }
+
+      if (modo === 'novo') {
+        const disabledTemplateIds = new Set(checklist.disabledTemplateIds)
+        for (const template of faseItems) disabledTemplateIds.add(template.id)
+        onChange({ ...checklist, disabledFaseKeys, faseSelectionStash, disabledTemplateIds })
+        return
+      }
+
+      const selectedTemplateIds = new Set(checklist.selectedTemplateIds)
+      for (const template of faseItems) selectedTemplateIds.delete(template.id)
+      onChange({ ...checklist, disabledFaseKeys, faseSelectionStash, selectedTemplateIds })
+      return
+    }
+
+    setFaseToggleWarning(null)
+    const disabledFaseKeys = new Set(checklist.disabledFaseKeys)
+    disabledFaseKeys.delete(key)
+    const stashed = checklist.faseSelectionStash[key]
+    const restoreIds = stashed
+      ? new Set(stashed)
+      : new Set(faseItems.map((t) => t.id))
+
+    if (modo === 'novo') {
+      const disabledTemplateIds = new Set(checklist.disabledTemplateIds)
+      for (const template of faseItems) {
+        if (restoreIds.has(template.id)) disabledTemplateIds.delete(template.id)
+        else disabledTemplateIds.add(template.id)
+      }
+      onChange({ ...checklist, disabledFaseKeys, disabledTemplateIds })
+      return
+    }
+
+    const selectedTemplateIds = new Set(checklist.selectedTemplateIds)
+    for (const template of faseItems) {
+      if (restoreIds.has(template.id)) selectedTemplateIds.add(template.id)
+      else selectedTemplateIds.delete(template.id)
+    }
+    onChange({ ...checklist, disabledFaseKeys, selectedTemplateIds })
+  }
+
+  function isCategoryFullyEnabled(items: TemplateChecklist[]): boolean {
+    return items.length > 0 && items.every((t) => isTaskEnabled(t))
+  }
+
+  function isCategoryPartiallyEnabled(items: TemplateChecklist[]): boolean {
+    const n = items.filter((t) => isTaskEnabled(t)).length
+    return n > 0 && n < items.length
+  }
+
+  function markAllVisible(enabled: boolean) {
+    const actionable = visible.filter((t) =>
+      isFaseIncluded(t.disciplina, t.fase as Fase),
+    )
+    setTasksEnabled(actionable, enabled)
   }
 
   function handleFaseEntradaChange(disciplina: Disciplina, fase: Fase) {
@@ -229,6 +391,82 @@ export function StepChecklistSelect({
 
   function getSelectablePhases(disciplina: Disciplina): Fase[] {
     return getPhaseSequence(disciplina).filter((f) => getFasesComChecklist(disciplina).includes(f))
+  }
+
+  function isFaseCollapsed(disciplina: Disciplina, fase: Fase): boolean {
+    return faseCollapsed[faseKey(disciplina, fase)] !== false
+  }
+
+  function isCatCollapsed(disciplina: Disciplina, fase: Fase, categoria: string): boolean {
+    return catCollapsed[catKey(disciplina, fase, categoria)] !== false
+  }
+
+  function toggleFase(disciplina: Disciplina, fase: Fase) {
+    const key = faseKey(disciplina, fase)
+    const currentlyCollapsed = faseCollapsed[key] !== false
+    setFaseCollapsed((prev) => ({ ...prev, [key]: !currentlyCollapsed }))
+  }
+
+  function toggleCat(disciplina: Disciplina, fase: Fase, categoria: string) {
+    const key = catKey(disciplina, fase, categoria)
+    const currentlyCollapsed = catCollapsed[key] !== false
+    setCatCollapsed((prev) => ({ ...prev, [key]: !currentlyCollapsed }))
+  }
+
+  function collectCollapseKeys(): { fases: string[]; cats: string[] } {
+    const fases: string[] = []
+    const cats: string[] = []
+    for (const disciplina of form.disciplinas) {
+      const discGroup = grouped[disciplina]
+      if (!discGroup) continue
+      const fasesOrdenadas = getPhaseSequence(disciplina).filter(
+        (f) => discGroup[f as Fase],
+      ) as Fase[]
+      for (const fase of fasesOrdenadas) {
+        if (
+          modo === 'em_andamento' &&
+          getFaseIndex(disciplina, fase) <
+            getFaseIndex(disciplina, checklist.faseEntrada[disciplina] ?? 'INFO_GERAL')
+        ) {
+          continue
+        }
+        fases.push(faseKey(disciplina, fase))
+        const categorias = discGroup[fase]
+        if (!categorias) continue
+        for (const categoria of Object.keys(categorias)) {
+          cats.push(catKey(disciplina, fase, categoria))
+        }
+      }
+    }
+    return { fases, cats }
+  }
+
+  function expandAll() {
+    const { fases, cats } = collectCollapseKeys()
+    setFaseCollapsed((prev) => {
+      const next = { ...prev }
+      for (const k of fases) next[k] = false
+      return next
+    })
+    setCatCollapsed((prev) => {
+      const next = { ...prev }
+      for (const k of cats) next[k] = false
+      return next
+    })
+  }
+
+  function collapseAll() {
+    const { fases, cats } = collectCollapseKeys()
+    setFaseCollapsed((prev) => {
+      const next = { ...prev }
+      for (const k of fases) next[k] = true
+      return next
+    })
+    setCatCollapsed((prev) => {
+      const next = { ...prev }
+      for (const k of cats) next[k] = true
+      return next
+    })
   }
 
   if (loading) {
@@ -251,8 +489,8 @@ export function StepChecklistSelect({
     <div className="step-checklist">
       <p className="step-checklist__intro">
         {modo === 'novo'
-          ? 'Todas as tarefas do template estão ativas por padrão. Desmarque categorias ou itens que não se aplicam a este projeto.'
-          : 'Informe a fase de entrada de cada disciplina e selecione as tarefas que deseja importar.'}
+          ? 'O que estiver marcado será criado no projeto. Desmarque tarefas ou desligue fases inteiras que não se aplicam.'
+          : 'Informe a fase de entrada de cada disciplina e selecione as tarefas a importar. Fases desligadas não serão criadas no projeto.'}
       </p>
 
       {error ? (
@@ -261,10 +499,54 @@ export function StepChecklistSelect({
         </p>
       ) : null}
 
-      <p className="step-checklist__summary">
-        <strong>{taskCount}</strong>{' '}
-        {taskCount === 1 ? 'tarefa será criada' : 'tarefas serão criadas'}
-      </p>
+      {faseToggleWarning ? (
+        <p className="step-checklist__error" role="alert">
+          {faseToggleWarning}
+        </p>
+      ) : null}
+
+      <div
+        className={`step-checklist__toolbar${taskCount === 0 ? ' step-checklist__toolbar--empty' : ''}`}
+      >
+        <div className="step-checklist__toolbar-summary">
+          {taskCount === 0 ? (
+            <>
+              <strong>Nenhuma tarefa</strong>
+              <span> do template será criada</span>
+            </>
+          ) : (
+            <>
+              <strong>{taskCount}</strong>
+              <span>
+                {' '}
+                {taskCount === 1 ? 'tarefa será criada' : 'tarefas serão criadas'}
+              </span>
+            </>
+          )}
+          {disabledFaseCount > 0 ? (
+            <span className="step-checklist__toolbar-fases-off">
+              {' '}
+              · {disabledFaseCount}{' '}
+              {disabledFaseCount === 1 ? 'fase fora do projeto' : 'fases fora do projeto'}
+            </span>
+          ) : null}
+        </div>
+        <div className="step-checklist__toolbar-actions">
+          <button type="button" className="step-checklist__tool-btn" onClick={() => markAllVisible(true)}>
+            Marcar todas
+          </button>
+          <button type="button" className="step-checklist__tool-btn" onClick={() => markAllVisible(false)}>
+            Desmarcar todas
+          </button>
+          <span className="step-checklist__tool-sep" aria-hidden />
+          <button type="button" className="step-checklist__tool-btn" onClick={expandAll}>
+            Expandir tudo
+          </button>
+          <button type="button" className="step-checklist__tool-btn" onClick={collapseAll}>
+            Recolher tudo
+          </button>
+        </div>
+      </div>
 
       {form.disciplinas.map((disciplina) => {
         const discGroup = grouped[disciplina]
@@ -311,59 +593,164 @@ export function StepChecklistSelect({
                 return null
               }
 
+              const faseItems = Object.values(categorias).flat()
+              const faseIncluded = isFaseIncluded(disciplina, fase)
+              const faseSelected = faseItems.filter((t) => isTaskEnabled(t)).length
+              const faseCollapsedNow = isFaseCollapsed(disciplina, fase)
+              const isEntrada =
+                modo === 'em_andamento' &&
+                (checklist.faseEntrada[disciplina] ?? 'INFO_GERAL') === fase
+
               return (
-                <div key={fase} className="step-checklist__fase">
-                  <h3 className="step-checklist__fase-title">{getPhaseLabel(fase, disciplina)}</h3>
-
-                  {Object.entries(categorias).map(([categoria, items]) => {
-                    const sorted = [...items].sort((a, b) => a.ordem - b.ordem)
-                    const categoryEnabled = isCategoryFullyEnabled(sorted)
-
-                    return (
-                      <div key={categoria} className="step-checklist__categoria">
-                        <label className="step-checklist__categoria-head">
-                          <input
-                            type="checkbox"
-                            checked={categoryEnabled}
-                            onChange={(e) => setCategoryEnabled(sorted, e.target.checked)}
-                          />
-                          <span className="step-checklist__categoria-name">{categoria}</span>
-                          <span className="step-checklist__categoria-count">
-                            {sorted.filter((t) => isTaskEnabled(t)).length}/{sorted.length}
-                          </span>
-                        </label>
-
-                        <ul className="step-checklist__tasks">
-                          {sorted.map((template) => (
-                            <li key={template.id}>
-                              <label className="step-checklist__task">
-                                <input
-                                  type="checkbox"
-                                  checked={isTaskEnabled(template)}
-                                  onChange={(e) => setTaskEnabled(template, e.target.checked)}
-                                />
-                                <span className="step-checklist__task-body">
-                                  <span className="step-checklist__task-name">{template.nome}</span>
-                                  {template.criticidade === 'critico' ? (
-                                    <span className="step-checklist__badge step-checklist__badge--critico">
-                                      Crítico
-                                    </span>
-                                  ) : null}
-                                  {template.origem !== 'interno' ? (
-                                    <span
-                                      className={`step-checklist__badge step-checklist__badge--origem-${template.origem.toLowerCase()}`}
-                                    >
-                                      {template.origem}
-                                    </span>
-                                  ) : null}
-                                </span>
-                              </label>
-                            </li>
-                          ))}
-                        </ul>
+                <div
+                  key={fase}
+                  className={`step-checklist__fase${faseCollapsedNow ? ' step-checklist__fase--collapsed' : ''}${!faseIncluded ? ' step-checklist__fase--off' : ''}`}
+                >
+                  <div className="step-checklist__fase-head">
+                    <button
+                      type="button"
+                      className="step-checklist__fase-toggle"
+                      aria-expanded={!faseCollapsedNow}
+                      onClick={() => toggleFase(disciplina, fase)}
+                    >
+                      <span className="step-checklist__chevron" aria-hidden>
+                        {faseCollapsedNow ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                      </span>
+                      <h3 className="step-checklist__fase-title">
+                        {getPhaseLabel(fase, disciplina)}
+                      </h3>
+                      <span className="step-checklist__fase-count">
+                        {faseIncluded ? `${faseSelected}/${faseItems.length}` : '—'}
+                      </span>
+                    </button>
+                    <label
+                      className={`step-checklist__fase-include${isEntrada ? ' step-checklist__fase-include--locked' : ''}`}
+                      title={
+                        isEntrada
+                          ? 'Fase de entrada — não pode ser desligada'
+                          : undefined
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        checked={faseIncluded}
+                        disabled={isEntrada}
+                        onChange={(e) =>
+                          setFaseIncluded(disciplina, fase, e.target.checked)
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span>Incluir fase</span>
+                    </label>
+                    {!faseIncluded ? (
+                      <span className="step-checklist__fase-off-label">
+                        Esta fase não será criada neste projeto
+                      </span>
+                    ) : (
+                      <div className="step-checklist__fase-actions">
+                        <button
+                          type="button"
+                          className="step-checklist__text-action"
+                          onClick={() => setTasksEnabled(faseItems, true)}
+                        >
+                          Marcar
+                        </button>
+                        <button
+                          type="button"
+                          className="step-checklist__text-action"
+                          onClick={() => setTasksEnabled(faseItems, false)}
+                        >
+                          Desmarcar
+                        </button>
                       </div>
-                    )
-                  })}
+                    )}
+                  </div>
+
+                  {!faseCollapsedNow && faseIncluded
+                    ? Object.entries(categorias).map(([categoria, items]) => {
+                        const sorted = [...items].sort((a, b) => a.ordem - b.ordem)
+                        const enabledCount = sorted.filter((t) => isTaskEnabled(t)).length
+                        const fully = isCategoryFullyEnabled(sorted)
+                        const partial = isCategoryPartiallyEnabled(sorted)
+                        const catCollapsedNow = isCatCollapsed(disciplina, fase, categoria)
+
+                        return (
+                          <div
+                            key={categoria}
+                            className={`step-checklist__categoria${catCollapsedNow ? ' step-checklist__categoria--collapsed' : ''}`}
+                          >
+                            <div className="step-checklist__categoria-head">
+                              <button
+                                type="button"
+                                className="step-checklist__cat-toggle"
+                                aria-expanded={!catCollapsedNow}
+                                aria-label={`${catCollapsedNow ? 'Expandir' : 'Recolher'} ${categoria}`}
+                                onClick={() => toggleCat(disciplina, fase, categoria)}
+                              >
+                                <span className="step-checklist__chevron" aria-hidden>
+                                  {catCollapsedNow ? (
+                                    <ChevronRight size={15} />
+                                  ) : (
+                                    <ChevronDown size={15} />
+                                  )}
+                                </span>
+                              </button>
+                              <IndeterminateCheckbox
+                                checked={fully}
+                                indeterminate={partial}
+                                aria-label={`Selecionar categoria ${categoria}`}
+                                onChange={(checked) => setCategoryEnabled(sorted, checked)}
+                              />
+                              <button
+                                type="button"
+                                className="step-checklist__categoria-name-btn"
+                                onClick={() => toggleCat(disciplina, fase, categoria)}
+                              >
+                                <span className="step-checklist__categoria-name">{categoria}</span>
+                              </button>
+                              <span className="step-checklist__categoria-count">
+                                {enabledCount}/{sorted.length}
+                              </span>
+                            </div>
+
+                            {!catCollapsedNow ? (
+                              <ul className="step-checklist__tasks">
+                                {sorted.map((template) => (
+                                  <li key={template.id}>
+                                    <label className="step-checklist__task">
+                                      <input
+                                        type="checkbox"
+                                        checked={isTaskEnabled(template)}
+                                        onChange={(e) =>
+                                          setTaskEnabled(template, e.target.checked)
+                                        }
+                                      />
+                                      <span className="step-checklist__task-body">
+                                        <span className="step-checklist__task-name">
+                                          {template.nome}
+                                        </span>
+                                        {template.criticidade === 'critico' ? (
+                                          <span className="step-checklist__badge step-checklist__badge--critico">
+                                            Crítico
+                                          </span>
+                                        ) : null}
+                                        {template.origem !== 'interno' ? (
+                                          <span
+                                            className={`step-checklist__badge step-checklist__badge--origem-${template.origem.toLowerCase()}`}
+                                          >
+                                            {template.origem}
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                    </label>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                        )
+                      })
+                    : null}
                 </div>
               )
             })}

@@ -96,6 +96,10 @@ interface ProjectHomePanelProps {
     ativa: boolean
     scope: 'projeto' | 'projetos_ativos'
   }) => Promise<void>
+  onImportFaseTemplates: (params: {
+    disciplina: Disciplina
+    fase: Fase
+  }) => Promise<void>
 }
 
 type FieldType = 'text' | 'date' | 'textarea' | 'select'
@@ -152,6 +156,7 @@ export function ProjectHomePanel({
   projetoFaseOverrides,
   estruturaFases = null,
   onToggleProjetoFase,
+  onImportFaseTemplates,
 }: ProjectHomePanelProps) {
   const { getLabel } = useDisciplinasConfig()
   const canEdit = !readOnly && hasPermissao(papel, 'editar_projeto')
@@ -200,6 +205,11 @@ export function ProjectHomePanel({
     fase: FaseConfig
     scope: 'projeto' | 'projetos_ativos'
   } | null>(null)
+  const [pendingImport, setPendingImport] = useState<{
+    disciplina: Disciplina
+    fase: FaseConfig
+  } | null>(null)
+  const [importLoading, setImportLoading] = useState(false)
 
   const disciplinasDisponiveis = useMemo(
     () => getDisciplinasDisponiveis(disciplinas),
@@ -469,6 +479,17 @@ export function ProjectHomePanel({
       if (ativa) {
         setFaseToggleLoadingId(fase.id)
         void onToggleProjetoFase({ disciplina, fase, ativa: true, scope: 'projeto' })
+          .then(() => {
+            const activeTasks = tarefas.filter(
+              (t) =>
+                t.disciplina === disciplina &&
+                t.fase === fase.codigo &&
+                t.deleted_at === null,
+            )
+            if (activeTasks.length === 0) {
+              setPendingImport({ disciplina, fase })
+            }
+          })
           .catch((err) => {
             setFaseToggleError(
               err instanceof Error ? err.message : 'Erro ao reativar fase no projeto',
@@ -480,8 +501,27 @@ export function ProjectHomePanel({
 
       setPendingDisable({ disciplina, fase, scope: 'projeto' })
     },
-    [fasesAtuais, onToggleProjetoFase],
+    [fasesAtuais, onToggleProjetoFase, tarefas],
   )
+
+  const handleConfirmImportFase = useCallback(async () => {
+    if (!pendingImport) return
+    setImportLoading(true)
+    setFaseToggleError(null)
+    try {
+      await onImportFaseTemplates({
+        disciplina: pendingImport.disciplina,
+        fase: pendingImport.fase.codigo,
+      })
+      setPendingImport(null)
+    } catch (err) {
+      setFaseToggleError(
+        err instanceof Error ? err.message : 'Erro ao importar tarefas do template',
+      )
+    } finally {
+      setImportLoading(false)
+    }
+  }, [onImportFaseTemplates, pendingImport])
 
   const handleConfirmDisableFase = useCallback(async () => {
     if (!pendingDisable) return
@@ -864,7 +904,6 @@ export function ProjectHomePanel({
                             const isCurrent = fasesAtuais[disciplina] === fase.codigo
                             const toggleDisabled =
                               estruturaFases != null ||
-                              fase.obrigatoria ||
                               !canManageProjetoFases ||
                               faseToggleLoadingId === fase.id
 
@@ -875,7 +914,6 @@ export function ProjectHomePanel({
                                 </span>
                                 <label
                                   className={`project-home__fases-toggle${toggleDisabled ? ' project-home__fases-toggle--disabled' : ''}`}
-                                  title={fase.obrigatoria ? 'Fase obrigatória' : undefined}
                                 >
                                   <input
                                     type="checkbox"
@@ -1120,6 +1158,24 @@ export function ProjectHomePanel({
         onCancel={() => {
           setConfirmAddOpen(false)
           setPendingAddDisciplina(null)
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={pendingImport != null}
+        title="Importar tarefas do template?"
+        message={
+          pendingImport
+            ? `A fase ${pendingImport.fase.label} (${getLabel(pendingImport.disciplina)}) não tem tarefas. Deseja importar as tarefas do template para esta fase?`
+            : ''
+        }
+        confirmLabel="Importar do template"
+        cancelLabel="Deixar vazia"
+        variant="default"
+        loading={importLoading}
+        onConfirm={() => void handleConfirmImportFase()}
+        onCancel={() => {
+          if (!importLoading) setPendingImport(null)
         }}
       />
 

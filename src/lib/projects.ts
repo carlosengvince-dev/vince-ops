@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 import { projectRowToRpcParams, upsertProjetoRpc } from './projetoRpc'
 import { insertTarefasRpc, type TarefaInsertRow } from './tarefaRpc'
 import { FASES_COM_CHECKLIST } from './constants'
-import { getPhaseSequence } from './faseConfig'
+import { fetchFasesConfig, getPhaseSequence, setProjetoFaseRpc } from './faseConfig'
 import { fetchDefaultDocumentosPadrao } from './documentosProjeto'
 import type {
   ChecklistSelectionState,
@@ -144,6 +144,9 @@ export function filterTemplatesForMode(
     const metodologia = form.metodologia[template.disciplina] ?? '2D'
     if (!templateAppliesToMetodologia(template, metodologia)) return false
 
+    const faseKey = `${template.disciplina}|${template.fase}`
+    if (checklist.disabledFaseKeys.has(faseKey)) return false
+
     if (modo === 'novo') {
       return !checklist.disabledTemplateIds.has(template.id)
     }
@@ -154,6 +157,57 @@ export function filterTemplatesForMode(
 
     return false
   })
+}
+
+async function setProjetoFaseWithRetry(
+  projetoId: string,
+  faseConfigId: string,
+  ativa: boolean,
+): Promise<void> {
+  try {
+    await setProjetoFaseRpc(projetoId, faseConfigId, ativa)
+  } catch {
+    await setProjetoFaseRpc(projetoId, faseConfigId, ativa)
+  }
+}
+
+async function applyDisabledFaseOverrides(
+  projetoId: string,
+  disciplinas: Disciplina[],
+  disabledFaseKeys: Set<string>,
+): Promise<void> {
+  if (disabledFaseKeys.size === 0) return
+
+  const fasesByDisc = await Promise.all(
+    disciplinas.map(async (disciplina) => ({
+      disciplina,
+      fases: await fetchFasesConfig(disciplina, { includeInactive: true }),
+    })),
+  )
+
+  const failed: string[] = []
+
+  for (const key of disabledFaseKeys) {
+    const [disciplina, codigo] = key.split('|') as [Disciplina, Fase]
+    const fases = fasesByDisc.find((d) => d.disciplina === disciplina)?.fases ?? []
+    const faseConfig = fases.find((f) => f.codigo === codigo)
+    if (!faseConfig || faseConfig.id.startsWith('fallback-')) {
+      failed.push(`${codigo} (${disciplina})`)
+      continue
+    }
+
+    try {
+      await setProjetoFaseWithRetry(projetoId, faseConfig.id, false)
+    } catch {
+      failed.push(`${faseConfig.label || codigo} (${disciplina})`)
+    }
+  }
+
+  if (failed.length > 0) {
+    throw new Error(
+      `Projeto criado, mas não foi possível desativar: ${failed.join(', ')}. Ajuste em Home → Fases ativas.`,
+    )
+  }
 }
 
 function templateToTarefaRow(template: TemplateChecklist, projetoId: string): TarefaInsertRow {
@@ -236,6 +290,11 @@ export async function createProject(payload: CreateProjectPayload): Promise<Proj
     const allTemplates = await fetchActiveTemplates(form.disciplinas)
     const selected = filterTemplatesForMode(allTemplates, modo, form, payload.checklist)
     await copyTemplatesToTarefas(projetoId, selected)
+    await applyDisabledFaseOverrides(
+      projetoId,
+      form.disciplinas,
+      payload.checklist.disabledFaseKeys,
+    )
   }
 
   return projeto as Projeto
