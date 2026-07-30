@@ -60,3 +60,10 @@ Cada entidade com writes RPC tem um módulo `src/lib/*Rpc.ts` (ex.: `clienteRpc.
 1. `templates_checklist` continua sendo o catálogo global; `tarefas` são snapshots por projeto (`template_id` opcional). Sem sync automático catálogo → projetos.
 2. A aba em Configurações mantém o rótulo **"Templates de checklist"** até decisão explícita de rename; a UI ganhou modo **Lista** filtrável (default) além da árvore por fase.
 3. Contagem de uso (projetos ativo/em_revisão por template) é agregada numa query, não N+1.
+
+## Piloto ME → biblioteca (2026-07-30)
+
+1. O projeto `ME` (MARINO ESTALEIRO) foi promovido como fonte do catálogo HID/PPCI via migration `030_sync_templates_from_me.sql` / `_sync_templates_from_projeto_impl`.
+2. Edição de tarefa no projeto = exceção local (snapshot); não altera a biblioteca nem cria “variação” no catálogo.
+3. Projetos já existentes (ORO, EHP, etc.) **não** foram atualizados pelo sync; só imports/criação futuros usam o catálogo novo.
+4. RPC pública `sync_templates_from_projeto(uuid)` exige `assert_papel(gestor|diretor_executivo)` e tem `GRANT EXECUTE` a `authenticated`.
