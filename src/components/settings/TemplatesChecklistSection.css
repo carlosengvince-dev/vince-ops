@@ -2,6 +2,179 @@
   margin-bottom: 20px;
 }
 
+.templates-checklist__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.templates-checklist__view-toggle {
+  display: inline-flex;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.templates-checklist__view-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.templates-checklist__view-btn--active {
+  background: var(--vince-blue, #0b4ea2);
+  color: #fff;
+}
+
+.templates-checklist__list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.templates-checklist__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px 12px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2, #f8fafc);
+}
+
+.templates-checklist__filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.templates-checklist__filter-field select {
+  padding: 8px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.templates-checklist__filters-reset {
+  align-self: end;
+  justify-self: start;
+  border: none;
+  background: transparent;
+  color: var(--vince-blue, #0b4ea2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.templates-checklist__list-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.templates-checklist__table-wrap {
+  overflow-x: auto;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.templates-checklist__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.templates-checklist__table th,
+.templates-checklist__table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 0.5px solid var(--border);
+  vertical-align: middle;
+}
+
+.templates-checklist__table th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  background: var(--surface-2, #f8fafc);
+}
+
+.templates-checklist__row--off {
+  opacity: 0.65;
+}
+
+.templates-checklist__name-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.templates-checklist__name-btn:hover {
+  color: var(--vince-blue, #0b4ea2);
+}
+
+.templates-checklist__pill {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #4b5563;
+  vertical-align: middle;
+}
+
+.templates-checklist__pill--critico {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.templates-checklist__num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.templates-checklist__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.templates-checklist__row-actions button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vince-blue, #0b4ea2);
+  cursor: pointer;
+}
+
+.templates-checklist__row-danger {
+  color: #b91c1c !important;
+}
+
 .templates-checklist__phases {
   display: flex;
   flex-direction: column;

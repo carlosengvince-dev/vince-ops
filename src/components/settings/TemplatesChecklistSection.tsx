@@ -18,6 +18,7 @@ import {
   countTemplatesInCategoria,
   deleteTemplate,
   fetchAllTemplates,
+  fetchTemplateUsageCounts,
   groupTemplatesByFaseCategoria,
   reorderTemplates,
   toggleTemplateAtivo,
@@ -25,7 +26,8 @@ import {
   type TemplateChecklistInput,
 } from '../../lib/templatesChecklist'
 import { getActiveDisciplinaCodigos } from '../../lib/disciplinaConfig'
-import type { Disciplina, Fase, TemplateChecklist } from '../../types'
+import { CRITICIDADE_OPTIONS, TAREFA_ORIGEM_OPTIONS } from '../../lib/tarefaManagement'
+import type { Criticidade, Disciplina, Fase, OrigemNormativa, TemplateChecklist } from '../../types'
 import { Button } from '../ui/Button'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import { DisciplinaTabs } from '../ui/DisciplinaTabs'
@@ -38,6 +40,8 @@ import { RestoreScopeAction } from './RestoreScopeAction'
 import './TemplatesChecklistSection.css'
 import './SettingsSubsection.css'
 
+type ChecklistViewMode = 'lista' | 'arvore'
+
 export function TemplatesChecklistSection() {
   const { showToast } = useToast()
   const { getSequence, getLabel, loading: fasesLoading } = useFasesConfig()
@@ -45,9 +49,17 @@ export function TemplatesChecklistSection() {
     () => getActiveDisciplinaCodigos()[0] ?? 'HID',
   )
   const [templates, setTemplates] = useState<TemplateChecklist[]>([])
+  const [usageCounts, setUsageCounts] = useState<Map<string, number>>(new Map())
   const [categoriaNomes, setCategoriaNomes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ChecklistViewMode>('lista')
+  const [filterNome, setFilterNome] = useState('')
+  const [filterFase, setFilterFase] = useState<Fase | ''>('')
+  const [filterCategoria, setFilterCategoria] = useState('')
+  const [filterAtivo, setFilterAtivo] = useState<'todos' | 'ativos' | 'inativos'>('todos')
+  const [filterCriticidade, setFilterCriticidade] = useState<Criticidade | ''>('')
+  const [filterOrigem, setFilterOrigem] = useState<OrigemNormativa | ''>('')
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
@@ -55,6 +67,7 @@ export function TemplatesChecklistSection() {
     fase: Fase | null
     categoria: string
     pickFase: boolean
+    pickCategoria: boolean
   } | null>(null)
   const [editingTemplate, setEditingTemplate] = useState<TemplateChecklist | null>(null)
   const [saving, setSaving] = useState(false)
@@ -93,12 +106,14 @@ export function TemplatesChecklistSection() {
     setLoading(true)
     setError(null)
     try {
-      const [rows, names] = await Promise.all([
+      const [rows, names, usage] = await Promise.all([
         fetchAllTemplates(disciplina),
         fetchCategoriaNomes(disciplina),
+        fetchTemplateUsageCounts(disciplina),
       ])
       setTemplates(rows)
       setCategoriaNomes(names)
+      setUsageCounts(usage)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar templates')
     } finally {
@@ -109,6 +124,15 @@ export function TemplatesChecklistSection() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    setFilterNome('')
+    setFilterFase('')
+    setFilterCategoria('')
+    setFilterAtivo('todos')
+    setFilterCriticidade('')
+    setFilterOrigem('')
+  }, [disciplina])
 
   const grouped = useMemo(() => groupTemplatesByFaseCategoria(templates), [templates])
 
@@ -139,8 +163,59 @@ export function TemplatesChecklistSection() {
     [faseOrder],
   )
 
+  const categoriasParaFiltro = useMemo(() => {
+    const set = new Set<string>(categoriaNomes)
+    for (const t of templates) {
+      if (t.categoria) set.add(t.categoria)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [categoriaNomes, templates])
+
+  const filteredTemplates = useMemo(() => {
+    const q = filterNome.trim().toLowerCase()
+    return templates
+      .filter((t) => {
+        if (filterFase && t.fase !== filterFase) return false
+        if (filterCategoria && t.categoria !== filterCategoria) return false
+        if (filterAtivo === 'ativos' && !t.ativo) return false
+        if (filterAtivo === 'inativos' && t.ativo) return false
+        if (filterCriticidade && t.criticidade !== filterCriticidade) return false
+        if (filterOrigem && t.origem !== filterOrigem) return false
+        if (q && !t.nome.toLowerCase().includes(q)) return false
+        return true
+      })
+      .sort((a, b) => {
+        const faseCmp =
+          fasesComChecklist.findIndex((f) => f === a.fase) -
+            fasesComChecklist.findIndex((f) => f === b.fase) ||
+          a.fase.localeCompare(b.fase)
+        if (faseCmp !== 0) return faseCmp
+        const catCmp = a.categoria.localeCompare(b.categoria, 'pt-BR')
+        if (catCmp !== 0) return catCmp
+        return a.ordem - b.ordem || a.nome.localeCompare(b.nome, 'pt-BR')
+      })
+  }, [
+    templates,
+    filterNome,
+    filterFase,
+    filterCategoria,
+    filterAtivo,
+    filterCriticidade,
+    filterOrigem,
+    fasesComChecklist,
+  ])
+
   function catKey(fase: Fase, categoria: string) {
     return `${fase}::${categoria}`
+  }
+
+  function resetFilters() {
+    setFilterNome('')
+    setFilterFase('')
+    setFilterCategoria('')
+    setFilterAtivo('todos')
+    setFilterCriticidade('')
+    setFilterOrigem('')
   }
 
   async function openRenameCategoria(categoria: string) {
@@ -258,7 +333,7 @@ export function TemplatesChecklistSection() {
 
   function openCreate(fase: Fase, categoria: string) {
     setFormMode('create')
-    setFormContext({ fase, categoria, pickFase: false })
+    setFormContext({ fase, categoria, pickFase: false, pickCategoria: false })
     setEditingTemplate(null)
     setFormError(null)
     const catTemplates = templates.filter((t) => t.fase === fase && t.categoria === categoria)
@@ -273,6 +348,21 @@ export function TemplatesChecklistSection() {
       fase: null,
       categoria,
       pickFase: true,
+      pickCategoria: false,
+    })
+    setEditingTemplate(null)
+    setFormError(null)
+    setFormInitialOrdem(1)
+    setFormOpen(true)
+  }
+
+  function openCreateFromList() {
+    setFormMode('create')
+    setFormContext({
+      fase: filterFase || null,
+      categoria: filterCategoria || '',
+      pickFase: true,
+      pickCategoria: true,
     })
     setEditingTemplate(null)
     setFormError(null)
@@ -282,7 +372,12 @@ export function TemplatesChecklistSection() {
 
   function openEdit(template: TemplateChecklist) {
     setFormMode('edit')
-    setFormContext({ fase: template.fase, categoria: template.categoria, pickFase: false })
+    setFormContext({
+      fase: template.fase,
+      categoria: template.categoria,
+      pickFase: true,
+      pickCategoria: true,
+    })
     setEditingTemplate(template)
     setFormError(null)
     setFormOpen(true)
@@ -292,6 +387,10 @@ export function TemplatesChecklistSection() {
     if (!formContext) return
     if (!formContext.fase) {
       setFormError('Selecione a fase')
+      return
+    }
+    if (!formContext.categoria.trim()) {
+      setFormError('Selecione a categoria')
       return
     }
     setSaving(true)
@@ -306,10 +405,14 @@ export function TemplatesChecklistSection() {
       if (formMode === 'create') {
         await createTemplate(input)
       } else if (editingTemplate) {
-        await updateTemplate(editingTemplate.id, values)
+        await updateTemplate(editingTemplate.id, {
+          ...values,
+          fase: formContext.fase,
+          categoria: formContext.categoria,
+        })
       }
       setFormOpen(false)
-      await Promise.all([refetchTemplates(), refetchCategorias()])
+      await load()
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Erro ao salvar')
     } finally {
@@ -333,7 +436,7 @@ export function TemplatesChecklistSection() {
     try {
       await deleteTemplate(deleteTarget.id)
       setDeleteTarget(null)
-      await Promise.all([refetchTemplates(), refetchCategorias()])
+      await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao excluir tarefa')
     } finally {
@@ -395,7 +498,8 @@ export function TemplatesChecklistSection() {
         <div>
           <h2 className="settings-subsection__title">Templates de checklist</h2>
           <p className="settings-subsection__hint">
-            Alterações nos templates não afetam projetos em andamento.
+            Biblioteca do catálogo (snapshot nos projetos). Alterações aqui não afetam projetos em
+            andamento automaticamente.
           </p>
         </div>
         <RestoreScopeAction escopo="templates" onRestored={load} />
@@ -411,6 +515,193 @@ export function TemplatesChecklistSection() {
       {loading || fasesLoading ? <p className="settings-subsection__status">Carregando…</p> : null}
 
       {!loading && !fasesLoading ? (
+        <>
+          <div className="templates-checklist__toolbar">
+            <div className="templates-checklist__view-toggle" role="group" aria-label="Modo de visualização">
+              <button
+                type="button"
+                className={`templates-checklist__view-btn${viewMode === 'lista' ? ' templates-checklist__view-btn--active' : ''}`}
+                onClick={() => setViewMode('lista')}
+              >
+                Lista
+              </button>
+              <button
+                type="button"
+                className={`templates-checklist__view-btn${viewMode === 'arvore' ? ' templates-checklist__view-btn--active' : ''}`}
+                onClick={() => setViewMode('arvore')}
+              >
+                Por fase
+              </button>
+            </div>
+            <Button variant="primary" onClick={openCreateFromList}>
+              <Plus size={14} />
+              Nova tarefa
+            </Button>
+          </div>
+
+          {viewMode === 'lista' ? (
+            <div className="templates-checklist__list-panel">
+              <div className="templates-checklist__filters">
+                <Input
+                  label="Buscar nome"
+                  value={filterNome}
+                  onChange={(e) => setFilterNome(e.target.value)}
+                  placeholder="Filtrar por nome…"
+                />
+                <label className="templates-checklist__filter-field">
+                  <span>Fase</span>
+                  <select
+                    value={filterFase}
+                    onChange={(e) => setFilterFase((e.target.value || '') as Fase | '')}
+                  >
+                    <option value="">Todas</option>
+                    {fasesComChecklist.map((f) => (
+                      <option key={f} value={f}>
+                        {getLabel(f, disciplina)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="templates-checklist__filter-field">
+                  <span>Categoria</span>
+                  <select
+                    value={filterCategoria}
+                    onChange={(e) => setFilterCategoria(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    {categoriasParaFiltro.map((nome) => (
+                      <option key={nome} value={nome}>
+                        {nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="templates-checklist__filter-field">
+                  <span>Status</span>
+                  <select
+                    value={filterAtivo}
+                    onChange={(e) =>
+                      setFilterAtivo(e.target.value as 'todos' | 'ativos' | 'inativos')
+                    }
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="ativos">Ativos</option>
+                    <option value="inativos">Inativos</option>
+                  </select>
+                </label>
+                <label className="templates-checklist__filter-field">
+                  <span>Criticidade</span>
+                  <select
+                    value={filterCriticidade}
+                    onChange={(e) =>
+                      setFilterCriticidade((e.target.value || '') as Criticidade | '')
+                    }
+                  >
+                    <option value="">Todas</option>
+                    {CRITICIDADE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="templates-checklist__filter-field">
+                  <span>Origem</span>
+                  <select
+                    value={filterOrigem}
+                    onChange={(e) =>
+                      setFilterOrigem((e.target.value || '') as OrigemNormativa | '')
+                    }
+                  >
+                    <option value="">Todas</option>
+                    {TAREFA_ORIGEM_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="templates-checklist__filters-reset"
+                  onClick={resetFilters}
+                >
+                  Limpar filtros
+                </button>
+              </div>
+
+              <p className="templates-checklist__list-summary">
+                {filteredTemplates.length} de {templates.length} tarefas
+              </p>
+
+              {filteredTemplates.length === 0 ? (
+                <p className="templates-checklist__empty-cat">Nenhuma tarefa com esses filtros.</p>
+              ) : (
+                <div className="templates-checklist__table-wrap">
+                  <table className="templates-checklist__table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Fase</th>
+                        <th>Categoria</th>
+                        <th>Ordem</th>
+                        <th>Status</th>
+                        <th>Uso</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTemplates.map((t) => (
+                        <tr key={t.id} className={!t.ativo ? 'templates-checklist__row--off' : undefined}>
+                          <td>
+                            <button
+                              type="button"
+                              className="templates-checklist__name-btn"
+                              onClick={() => openEdit(t)}
+                            >
+                              {t.nome}
+                            </button>
+                            {t.criticidade === 'critico' ? (
+                              <span className="templates-checklist__pill templates-checklist__pill--critico">
+                                Crítico
+                              </span>
+                            ) : null}
+                            {t.origem !== 'interno' ? (
+                              <span className="templates-checklist__pill">{t.origem}</span>
+                            ) : null}
+                          </td>
+                          <td>{getLabel(t.fase, disciplina)}</td>
+                          <td>{t.categoria}</td>
+                          <td className="templates-checklist__num">{t.ordem}</td>
+                          <td>{t.ativo ? 'Ativo' : 'Inativo'}</td>
+                          <td className="templates-checklist__num" title="Projetos ativos/em revisão">
+                            {usageCounts.get(t.id) ?? 0}
+                          </td>
+                          <td>
+                            <div className="templates-checklist__row-actions">
+                              <button type="button" onClick={() => openEdit(t)}>
+                                Editar
+                              </button>
+                              <button type="button" onClick={() => void handleToggleAtivo(t)}>
+                                {t.ativo ? 'Desativar' : 'Ativar'}
+                              </button>
+                              <button
+                                type="button"
+                                className="templates-checklist__row-danger"
+                                onClick={() => setDeleteTarget(t)}
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : (
         <div className="templates-checklist__phases">
           {groupedByFase.map(({ fase, label, categorias }) => (
             <div key={fase} className="templates-checklist__phase">
@@ -538,6 +829,8 @@ export function TemplatesChecklistSection() {
             </div>
           ) : null}
         </div>
+          )}
+        </>
       ) : null}
 
       <TemplateFormModal
@@ -545,7 +838,9 @@ export function TemplatesChecklistSection() {
         mode={formMode}
         loading={saving}
         error={formError}
-        categoriaLabel={formContext?.categoria ?? null}
+        categoriaLabel={
+          formContext && !formContext.pickCategoria ? formContext.categoria : null
+        }
         faseSelect={
           formContext?.pickFase
             ? {
@@ -556,11 +851,24 @@ export function TemplatesChecklistSection() {
                 value: formContext.fase ?? '',
                 onChange: (fase) => {
                   setFormContext((prev) => (prev ? { ...prev, fase } : prev))
-                  const catTemplates = templates.filter(
-                    (t) => t.fase === fase && t.categoria === formContext.categoria,
-                  )
-                  const maxOrdem = catTemplates.reduce((m, t) => Math.max(m, t.ordem), 0)
-                  setFormInitialOrdem(maxOrdem + 1)
+                  if (formMode === 'create' && formContext.categoria) {
+                    const catTemplates = templates.filter(
+                      (t) => t.fase === fase && t.categoria === formContext.categoria,
+                    )
+                    const maxOrdem = catTemplates.reduce((m, t) => Math.max(m, t.ordem), 0)
+                    setFormInitialOrdem(maxOrdem + 1)
+                  }
+                },
+              }
+            : null
+        }
+        categoriaSelect={
+          formContext?.pickCategoria
+            ? {
+                options: categoriasParaFiltro,
+                value: formContext.categoria,
+                onChange: (categoria) => {
+                  setFormContext((prev) => (prev ? { ...prev, categoria } : prev))
                 },
               }
             : null

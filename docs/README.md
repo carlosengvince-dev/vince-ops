@@ -17,7 +17,8 @@ Notas de orientação, planos e decisões — fora do código-fonte.
 | [Sessão 3 — Fases e categorias](./plans/VINCE-OPS-SESSAO3-FASES-CATEGORIAS.md) | |
 | [Migration 022 — Disciplinas](./plans/VINCE-OPS-MIGRATION-022-DISCIPLINAS.md) | |
 | [RT / ART](./plans/VINCE-OPS_RT_ART.txt) | |
-| [Limpar projetos](./plans/VINCE-OPS-FUNCAO-LIMPAR-PROJETOS.md) | |
+| [Biblioteca de tarefas — inventário Fase 0](./plans/VINCE-OPS-BIBLIOTECA-TAREFAS-INVENTARIO.md) | Métricas catálogo vs instância |
+| [Revisão Biblioteca v2](./plans/VINCE-OPS-REVISAO-BIBLIOTECA-TAREFAS-v2.md) | Ajustes Claude sobre o roadmap |
 
 ## Fixes (histórico)
 

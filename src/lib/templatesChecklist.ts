@@ -238,3 +238,51 @@ export async function countTarefasAtivasInCategoria(
   if (error) throw new Error(error.message)
   return count ?? 0
 }
+
+/**
+ * Contagem agregada: template_id → nº de projetos ativo/em_revisão
+ * que ainda têm pelo menos uma tarefa viva ligada a esse template.
+ * Uma query (sem N+1).
+ */
+export async function fetchTemplateUsageCounts(
+  disciplina: Disciplina,
+): Promise<Map<string, number>> {
+  const { data: projetos, error: projError } = await supabase
+    .from('projetos')
+    .select('id')
+    .in('status', ['ativo', 'em_revisao'])
+    .is('deleted_at', null)
+
+  if (projError) throw new Error(projError.message)
+  const projetoIds = (projetos ?? []).map((p) => p.id as string)
+  if (projetoIds.length === 0) return new Map()
+
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('template_id, projeto_id')
+    .eq('disciplina', disciplina)
+    .in('projeto_id', projetoIds)
+    .not('template_id', 'is', null)
+    .is('deleted_at', null)
+
+  if (error) throw new Error(error.message)
+
+  const projectsByTemplate = new Map<string, Set<string>>()
+  for (const row of data ?? []) {
+    const templateId = row.template_id as string | null
+    const projetoId = row.projeto_id as string
+    if (!templateId) continue
+    let set = projectsByTemplate.get(templateId)
+    if (!set) {
+      set = new Set()
+      projectsByTemplate.set(templateId, set)
+    }
+    set.add(projetoId)
+  }
+
+  const counts = new Map<string, number>()
+  for (const [templateId, set] of projectsByTemplate) {
+    counts.set(templateId, set.size)
+  }
+  return counts
+}

@@ -35,6 +35,11 @@ interface TemplateFormModalProps {
     value: Fase | ''
     onChange: (fase: Fase) => void
   } | null
+  categoriaSelect?: {
+    options: string[]
+    value: string
+    onChange: (categoria: string) => void
+  } | null
   onClose: () => void
   onSubmit: (values: TemplateFormValues) => void
 }
@@ -58,23 +63,30 @@ export function TemplateFormModal({
   initial,
   categoriaLabel = null,
   faseSelect = null,
+  categoriaSelect = null,
   onClose,
   onSubmit,
 }: TemplateFormModalProps) {
   const [form, setForm] = useState<TemplateFormValues>(DEFAULT)
   const [nomeError, setNomeError] = useState<string | null>(null)
   const [faseError, setFaseError] = useState<string | null>(null)
+  const [categoriaError, setCategoriaError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setForm({ ...DEFAULT, ...initial })
     setNomeError(null)
     setFaseError(null)
+    setCategoriaError(null)
   }, [open, initial])
 
   function handleSubmit() {
     if (faseSelect && !faseSelect.value) {
       setFaseError('Selecione a fase')
+      return
+    }
+    if (categoriaSelect && !categoriaSelect.value.trim()) {
+      setCategoriaError('Selecione a categoria')
       return
     }
     if (!form.nome.trim()) {
@@ -96,7 +108,7 @@ export function TemplateFormModal({
       onClose={onClose}
     >
       <div className="template-form-modal">
-        {categoriaLabel ? (
+        {categoriaLabel && !categoriaSelect ? (
           <p className="template-form-modal__categoria">
             Categoria: <strong>{categoriaLabel}</strong>
           </p>
@@ -120,6 +132,29 @@ export function TemplateFormModal({
               ))}
             </select>
             {faseError ? <span className="template-form-modal__field-error">{faseError}</span> : null}
+          </label>
+        ) : null}
+
+        {categoriaSelect ? (
+          <label className="template-form-modal__field">
+            <span className="template-form-modal__label">Categoria *</span>
+            <select
+              value={categoriaSelect.value}
+              onChange={(e) => {
+                categoriaSelect.onChange(e.target.value)
+                if (categoriaError) setCategoriaError(null)
+              }}
+            >
+              <option value="">Selecione a categoria</option>
+              {categoriaSelect.options.map((nome) => (
+                <option key={nome} value={nome}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+            {categoriaError ? (
+              <span className="template-form-modal__field-error">{categoriaError}</span>
+            ) : null}
           </label>
         ) : null}
 

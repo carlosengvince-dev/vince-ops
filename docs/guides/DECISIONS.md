@@ -54,3 +54,9 @@ Cada entidade com writes RPC tem um módulo `src/lib/*Rpc.ts` (ex.: `clienteRpc.
 1. `disciplinas_config` é a fonte de verdade para nome e cores exibidos; `codigo` permanece chave imutável em `projetos.disciplinas`, `tarefas.disciplina`, `fases_config.disciplina` etc.
 2. HID/PPCI/SPK mantêm classes CSS legadas (`disc-tone--hid` etc.); disciplinas custom usam cores de `disciplinas_config` via style inline e CSS vars `--disc-{codigo}-bg/text`.
 3. Travas de fase obrigatória foram removidas do banco (migration 022b); proteções restantes são projetos na fase atual e ao menos uma fase ativa por disciplina.
+
+## Biblioteca de tarefas (Fase 0–1)
+
+1. `templates_checklist` continua sendo o catálogo global; `tarefas` são snapshots por projeto (`template_id` opcional). Sem sync automático catálogo → projetos.
+2. A aba em Configurações mantém o rótulo **"Templates de checklist"** até decisão explícita de rename; a UI ganhou modo **Lista** filtrável (default) além da árvore por fase.
+3. Contagem de uso (projetos ativo/em_revisão por template) é agregada numa query, não N+1.
