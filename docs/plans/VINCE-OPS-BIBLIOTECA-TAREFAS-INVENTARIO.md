@@ -53,3 +53,4 @@ Promovidos/religados no ME: `ETAC - Consumo`, `VIABILIDADE - Formulário`, `VIAB
 - Rótulo da aba permanece **"Templates de checklist"** até decisão explícita de rename.
 - Lista filtrável com **ordenação por coluna** (clique no cabeçalho).
 - Fase 2 no checklist do projeto: menu ⋮ → Adicionar à biblioteca / Atualizar na biblioteca / Manter só neste projeto (gestor, projeto ativo/em_revisão).
+- Fase 3: em Configurações → Templates, **Aplicar em projetos** (preview + escopo conteúdo ou conteúdo+colocação). Só tarefas já vinculadas; concluídos/cancelados fora.

@@ -286,3 +286,51 @@ export async function fetchTemplateUsageCounts(
   }
   return counts
 }
+
+export type ApplyTemplateEscopo = 'conteudo' | 'conteudo_e_colocacao'
+
+export interface ApplyTemplatePreview {
+  template_id: string
+  projetos: number
+  tarefas: number
+}
+
+export interface ApplyTemplateResult {
+  template_id: string
+  escopo: ApplyTemplateEscopo
+  tarefas_atualizadas: number
+  projetos_afetados: number
+}
+
+export async function previewApplyTemplateToProjetos(
+  templateId: string,
+): Promise<ApplyTemplatePreview> {
+  const { data, error } = await supabase.rpc('preview_apply_template_to_projetos', {
+    p_template_id: templateId,
+  })
+  if (error) throw new Error(error.message)
+  const row = data as ApplyTemplatePreview
+  return {
+    template_id: row.template_id,
+    projetos: Number(row.projetos ?? 0),
+    tarefas: Number(row.tarefas ?? 0),
+  }
+}
+
+export async function applyTemplateToProjetos(
+  templateId: string,
+  escopo: ApplyTemplateEscopo = 'conteudo',
+): Promise<ApplyTemplateResult> {
+  const { data, error } = await supabase.rpc('apply_template_to_projetos', {
+    p_template_id: templateId,
+    p_escopo: escopo,
+  })
+  if (error) throw new Error(error.message)
+  const row = data as ApplyTemplateResult
+  return {
+    template_id: row.template_id,
+    escopo: row.escopo,
+    tarefas_atualizadas: Number(row.tarefas_atualizadas ?? 0),
+    projetos_afetados: Number(row.projetos_afetados ?? 0),
+  }
+}

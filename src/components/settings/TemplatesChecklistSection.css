@@ -192,6 +192,50 @@
   color: #b91c1c !important;
 }
 
+.templates-checklist__apply {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.templates-checklist__apply-lead,
+.templates-checklist__apply-impact {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.templates-checklist__apply-escopo {
+  margin: 0;
+  padding: 12px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.templates-checklist__apply-escopo legend {
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.templates-checklist__apply-escopo label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.templates-checklist__apply-escopo input {
+  margin-top: 3px;
+}
+
 .templates-checklist__phases {
   display: flex;
   flex-direction: column;

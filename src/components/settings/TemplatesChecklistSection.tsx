@@ -20,9 +20,13 @@ import {
   fetchAllTemplates,
   fetchTemplateUsageCounts,
   groupTemplatesByFaseCategoria,
+  previewApplyTemplateToProjetos,
+  applyTemplateToProjetos,
   reorderTemplates,
   toggleTemplateAtivo,
   updateTemplate,
+  type ApplyTemplateEscopo,
+  type ApplyTemplatePreview,
   type TemplateChecklistInput,
 } from '../../lib/templatesChecklist'
 import { getActiveDisciplinaCodigos } from '../../lib/disciplinaConfig'
@@ -92,6 +96,11 @@ export function TemplatesChecklistSection() {
   const [deleteTemplateCount, setDeleteTemplateCount] = useState(0)
   const [deleteCascadeTemplates, setDeleteCascadeTemplates] = useState(true)
   const [deletingCategory, setDeletingCategory] = useState(false)
+  const [applyTarget, setApplyTarget] = useState<TemplateChecklist | null>(null)
+  const [applyPreview, setApplyPreview] = useState<ApplyTemplatePreview | null>(null)
+  const [applyEscopo, setApplyEscopo] = useState<ApplyTemplateEscopo>('conteudo')
+  const [applyLoading, setApplyLoading] = useState(false)
+  const [applyError, setApplyError] = useState<string | null>(null)
 
   const faseOrder = getSequence(disciplina)
 
@@ -456,19 +465,72 @@ export function TemplatesChecklistSection() {
       }
       if (formMode === 'create') {
         await createTemplate(input)
+        setFormOpen(false)
+        await load()
+        showToast('Tarefa criada na biblioteca')
       } else if (editingTemplate) {
         await updateTemplate(editingTemplate.id, {
           ...values,
           fase: formContext.fase,
           categoria: formContext.categoria,
         })
+        setFormOpen(false)
+        await load()
+        showToast('Biblioteca atualizada')
+        try {
+          const preview = await previewApplyTemplateToProjetos(editingTemplate.id)
+          if (preview.tarefas > 0) {
+            const row =
+              (await fetchAllTemplates(disciplina)).find((t) => t.id === editingTemplate.id) ??
+              editingTemplate
+            setApplyTarget(row)
+            setApplyEscopo('conteudo')
+            setApplyPreview(preview)
+            setApplyError(null)
+          }
+        } catch {
+          // oferta opcional — falha no preview não bloqueia o save
+        }
       }
-      setFormOpen(false)
-      await load()
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Erro ao salvar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function openApplyToProjetos(template: TemplateChecklist) {
+    setApplyTarget(template)
+    setApplyEscopo('conteudo')
+    setApplyError(null)
+    setApplyPreview(null)
+    setApplyLoading(true)
+    try {
+      const preview = await previewApplyTemplateToProjetos(template.id)
+      setApplyPreview(preview)
+    } catch (e) {
+      setApplyError(e instanceof Error ? e.message : 'Erro ao carregar impacto')
+    } finally {
+      setApplyLoading(false)
+    }
+  }
+
+  async function handleConfirmApply() {
+    if (!applyTarget) return
+    setApplyLoading(true)
+    setApplyError(null)
+    try {
+      const result = await applyTemplateToProjetos(applyTarget.id, applyEscopo)
+      setApplyTarget(null)
+      setApplyPreview(null)
+      showToast(
+        `Aplicado em ${result.projetos_afetados} projeto(s) — ${result.tarefas_atualizadas} tarefa(s).`,
+      )
+      await load()
+    } catch (e) {
+      setApplyError(e instanceof Error ? e.message : 'Erro ao aplicar')
+    } finally {
+      setApplyLoading(false)
     }
   }
 
@@ -766,6 +828,11 @@ export function TemplatesChecklistSection() {
                               <button type="button" onClick={() => openEdit(t)}>
                                 Editar
                               </button>
+                              {(usageCounts.get(t.id) ?? 0) > 0 ? (
+                                <button type="button" onClick={() => void openApplyToProjetos(t)}>
+                                  Aplicar em projetos
+                                </button>
+                              ) : null}
                               <button type="button" onClick={() => void handleToggleAtivo(t)}>
                                 {t.ativo ? 'Desativar' : 'Ativar'}
                               </button>
@@ -1004,6 +1071,87 @@ export function TemplatesChecklistSection() {
               onClick={handleNovaCategoria}
             >
               {creatingCategoria ? 'Criando…' : 'Criar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={applyTarget != null}
+        title="Aplicar em projetos ativos?"
+        onClose={() => {
+          if (!applyLoading) {
+            setApplyTarget(null)
+            setApplyPreview(null)
+            setApplyError(null)
+          }
+        }}
+      >
+        <div className="templates-checklist__apply">
+          {applyTarget ? (
+            <p className="templates-checklist__apply-lead">
+              Template: <strong>{applyTarget.nome}</strong>
+            </p>
+          ) : null}
+          {applyLoading && !applyPreview ? (
+            <p className="settings-subsection__status">Calculando impacto…</p>
+          ) : null}
+          {applyPreview ? (
+            <p className="templates-checklist__apply-impact">
+              Afeta <strong>{applyPreview.tarefas}</strong> tarefa(s) em{' '}
+              <strong>{applyPreview.projetos}</strong> projeto(s) ativo/em revisão.
+              Projetos concluídos ou cancelados não são alterados. Tarefas sem vínculo com este
+              template não são criadas.
+            </p>
+          ) : null}
+          <fieldset className="templates-checklist__apply-escopo">
+            <legend>O que aplicar</legend>
+            <label>
+              <input
+                type="radio"
+                name="apply-escopo"
+                checked={applyEscopo === 'conteudo'}
+                onChange={() => setApplyEscopo('conteudo')}
+                disabled={applyLoading}
+              />
+              <span>
+                <strong>Só conteúdo</strong> — nome, descrição, criticidade, origem, referência,
+                metodologia
+              </span>
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="apply-escopo"
+                checked={applyEscopo === 'conteudo_e_colocacao'}
+                onChange={() => setApplyEscopo('conteudo_e_colocacao')}
+                disabled={applyLoading}
+              />
+              <span>
+                <strong>Conteúdo + colocação</strong> — também fase, categoria e ordem (pode mover
+                tarefas de fase no projeto)
+              </span>
+            </label>
+          </fieldset>
+          {applyError ? <p className="settings-subsection__error">{applyError}</p> : null}
+          <div className="templates-checklist__nova-cat-actions">
+            <Button
+              variant="secondary"
+              disabled={applyLoading}
+              onClick={() => {
+                setApplyTarget(null)
+                setApplyPreview(null)
+                setApplyError(null)
+              }}
+            >
+              Não aplicar
+            </Button>
+            <Button
+              variant="primary"
+              disabled={applyLoading || !applyPreview || applyPreview.tarefas === 0}
+              onClick={() => void handleConfirmApply()}
+            >
+              {applyLoading ? 'Aplicando…' : 'Aplicar agora'}
             </Button>
           </div>
         </div>

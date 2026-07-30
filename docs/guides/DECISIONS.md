@@ -73,3 +73,9 @@ Cada entidade com writes RPC tem um módulo `src/lib/*Rpc.ts` (ex.: `clienteRpc.
 1. No checklist do projeto ativo/em_revisão, gestores podem: adicionar tarefa manual à biblioteca, empurrar conteúdo para o template vinculado, ou desvincular (exceção local).
 2. RPCs: `promote_tarefa_to_template`, `push_tarefa_to_template`, `unlink_tarefa_template` — nunca alteram tarefas de outros projetos.
 3. Lista da biblioteca (Configurações) permite ordenar por colunas (nome, fase, categoria, ordem, status, uso).
+
+## Biblioteca Fase 3 — aplicar em projetos (2026-07-30)
+
+1. `preview_apply_template_to_projetos` / `apply_template_to_projetos` atualizam só tarefas já vinculadas (`template_id`) em projetos `ativo`/`em_revisao`.
+2. Escopos: `conteudo` (padrão) ou `conteudo_e_colocacao` (inclui fase/categoria/ordem).
+3. UI: ação “Aplicar em projetos” na lista + oferta após editar template com uso > 0. Nunca automático; cancelar = só catálogo muda.
