@@ -15,7 +15,7 @@
 | Pasta local | `D:\VINCE\sistemas-web\vince-ops\` |
 | Backups manuais | `D:\VINCE\backups\[data]\` (CSVs) |
 | Migrations SQL | `supabase/migrations/` no repo (001 a 025) |
-| Decisões de arquitetura | `DECISIONS.md` na raiz do repo |
+| Decisões de arquitetura | `docs/guides/DECISIONS.md` |
 
 Chaves do Supabase: apenas em `.env.local` (nunca no Git) e nas
 Environment Variables do Vercel.
@@ -164,7 +164,7 @@ Cole este contexto ao abrir uma nova conversa:
 > supabase/migrations/; soft delete idempotente; unicidade parcial
 > (where deleted_at is null). Fases, categorias e disciplinas são
 > entidades configuráveis (fases_config, categorias_config,
-> disciplinas_config). Consulte DECISIONS.md no repo. Sou leigo em
+> disciplinas_config). Consulte docs/guides/DECISIONS.md no repo. Sou leigo em
 > programação: me entregue SQLs prontos para o Supabase e prompts
 > prontos para o Cursor, um passo por vez, com validação entre eles.
 

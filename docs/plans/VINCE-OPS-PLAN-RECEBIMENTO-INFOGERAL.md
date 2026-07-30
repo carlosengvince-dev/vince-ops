@@ -1,5 +1,5 @@
 # VINCE Ops — Plano técnico: Recebimento dentro de Informações Gerais
-> Resposta ao briefing `VINCE-OPS-BRIEFING-RECEBIMENTO-INFOGERAL.md`.
+> Resposta ao briefing `docs/plans/VINCE-OPS-BRIEFING-RECEBIMENTO-INFOGERAL.md`.
 > Diagnóstico no código real + plano passo a passo para aceite.
 > **Não executar até o aceite final.**
 
