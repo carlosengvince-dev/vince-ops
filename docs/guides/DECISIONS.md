@@ -67,3 +67,9 @@ Cada entidade com writes RPC tem um módulo `src/lib/*Rpc.ts` (ex.: `clienteRpc.
 2. Edição de tarefa no projeto = exceção local (snapshot); não altera a biblioteca nem cria “variação” no catálogo.
 3. Projetos já existentes (ORO, EHP, etc.) **não** foram atualizados pelo sync; só imports/criação futuros usam o catálogo novo.
 4. RPC pública `sync_templates_from_projeto(uuid)` exige `assert_papel(gestor|diretor_executivo)` e tem `GRANT EXECUTE` a `authenticated`.
+
+## Biblioteca Fase 2 — promover / atualizar / desvincular (2026-07-30)
+
+1. No checklist do projeto ativo/em_revisão, gestores podem: adicionar tarefa manual à biblioteca, empurrar conteúdo para o template vinculado, ou desvincular (exceção local).
+2. RPCs: `promote_tarefa_to_template`, `push_tarefa_to_template`, `unlink_tarefa_template` — nunca alteram tarefas de outros projetos.
+3. Lista da biblioteca (Configurações) permite ordenar por colunas (nome, fase, categoria, ordem, status, uso).

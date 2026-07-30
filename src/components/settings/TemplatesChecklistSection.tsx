@@ -41,6 +41,7 @@ import './TemplatesChecklistSection.css'
 import './SettingsSubsection.css'
 
 type ChecklistViewMode = 'lista' | 'arvore'
+type ListSortKey = 'nome' | 'fase' | 'categoria' | 'ordem' | 'status' | 'uso'
 
 export function TemplatesChecklistSection() {
   const { showToast } = useToast()
@@ -60,6 +61,8 @@ export function TemplatesChecklistSection() {
   const [filterAtivo, setFilterAtivo] = useState<'todos' | 'ativos' | 'inativos'>('todos')
   const [filterCriticidade, setFilterCriticidade] = useState<Criticidade | ''>('')
   const [filterOrigem, setFilterOrigem] = useState<OrigemNormativa | ''>('')
+  const [sortKey, setSortKey] = useState<ListSortKey>('fase')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
@@ -173,27 +176,54 @@ export function TemplatesChecklistSection() {
 
   const filteredTemplates = useMemo(() => {
     const q = filterNome.trim().toLowerCase()
-    return templates
-      .filter((t) => {
-        if (filterFase && t.fase !== filterFase) return false
-        if (filterCategoria && t.categoria !== filterCategoria) return false
-        if (filterAtivo === 'ativos' && !t.ativo) return false
-        if (filterAtivo === 'inativos' && t.ativo) return false
-        if (filterCriticidade && t.criticidade !== filterCriticidade) return false
-        if (filterOrigem && t.origem !== filterOrigem) return false
-        if (q && !t.nome.toLowerCase().includes(q)) return false
-        return true
-      })
-      .sort((a, b) => {
-        const faseCmp =
-          fasesComChecklist.findIndex((f) => f === a.fase) -
-            fasesComChecklist.findIndex((f) => f === b.fase) ||
-          a.fase.localeCompare(b.fase)
-        if (faseCmp !== 0) return faseCmp
-        const catCmp = a.categoria.localeCompare(b.categoria, 'pt-BR')
-        if (catCmp !== 0) return catCmp
-        return a.ordem - b.ordem || a.nome.localeCompare(b.nome, 'pt-BR')
-      })
+    const filtered = templates.filter((t) => {
+      if (filterFase && t.fase !== filterFase) return false
+      if (filterCategoria && t.categoria !== filterCategoria) return false
+      if (filterAtivo === 'ativos' && !t.ativo) return false
+      if (filterAtivo === 'inativos' && t.ativo) return false
+      if (filterCriticidade && t.criticidade !== filterCriticidade) return false
+      if (filterOrigem && t.origem !== filterOrigem) return false
+      if (q && !t.nome.toLowerCase().includes(q)) return false
+      return true
+    })
+
+    const dir = sortDir === 'asc' ? 1 : -1
+    const faseIndex = (fase: Fase) => {
+      const idx = fasesComChecklist.findIndex((f) => f === fase)
+      return idx < 0 ? 999 : idx
+    }
+
+    return [...filtered].sort((a, b) => {
+      let cmp = 0
+      switch (sortKey) {
+        case 'nome':
+          cmp = a.nome.localeCompare(b.nome, 'pt-BR')
+          break
+        case 'fase':
+          cmp = faseIndex(a.fase) - faseIndex(b.fase) || a.fase.localeCompare(b.fase)
+          break
+        case 'categoria':
+          cmp = a.categoria.localeCompare(b.categoria, 'pt-BR')
+          break
+        case 'ordem':
+          cmp = a.ordem - b.ordem
+          break
+        case 'status':
+          cmp = Number(b.ativo) - Number(a.ativo)
+          break
+        case 'uso':
+          cmp = (usageCounts.get(a.id) ?? 0) - (usageCounts.get(b.id) ?? 0)
+          break
+      }
+      if (cmp !== 0) return cmp * dir
+      // Desempate estável
+      return (
+        faseIndex(a.fase) - faseIndex(b.fase) ||
+        a.categoria.localeCompare(b.categoria, 'pt-BR') ||
+        a.ordem - b.ordem ||
+        a.nome.localeCompare(b.nome, 'pt-BR')
+      )
+    })
   }, [
     templates,
     filterNome,
@@ -203,7 +233,29 @@ export function TemplatesChecklistSection() {
     filterCriticidade,
     filterOrigem,
     fasesComChecklist,
+    sortKey,
+    sortDir,
+    usageCounts,
   ])
+
+  function toggleSort(key: ListSortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setSortKey(key)
+    setSortDir(key === 'status' || key === 'uso' || key === 'ordem' ? 'desc' : 'asc')
+  }
+
+  function sortAria(key: ListSortKey): 'none' | 'ascending' | 'descending' {
+    if (sortKey !== key) return 'none'
+    return sortDir === 'asc' ? 'ascending' : 'descending'
+  }
+
+  function sortIndicator(key: ListSortKey): string {
+    if (sortKey !== key) return ''
+    return sortDir === 'asc' ? ' ↑' : ' ↓'
+  }
 
   function catKey(fase: Fase, categoria: string) {
     return `${fase}::${categoria}`
@@ -641,12 +693,44 @@ export function TemplatesChecklistSection() {
                   <table className="templates-checklist__table">
                     <thead>
                       <tr>
-                        <th>Nome</th>
-                        <th>Fase</th>
-                        <th>Categoria</th>
-                        <th>Ordem</th>
-                        <th>Status</th>
-                        <th>Uso</th>
+                        <th aria-sort={sortAria('nome')}>
+                          <button type="button" className="templates-checklist__th-btn" onClick={() => toggleSort('nome')}>
+                            Nome{sortIndicator('nome')}
+                          </button>
+                        </th>
+                        <th aria-sort={sortAria('fase')}>
+                          <button type="button" className="templates-checklist__th-btn" onClick={() => toggleSort('fase')}>
+                            Fase{sortIndicator('fase')}
+                          </button>
+                        </th>
+                        <th aria-sort={sortAria('categoria')}>
+                          <button
+                            type="button"
+                            className="templates-checklist__th-btn"
+                            onClick={() => toggleSort('categoria')}
+                          >
+                            Categoria{sortIndicator('categoria')}
+                          </button>
+                        </th>
+                        <th aria-sort={sortAria('ordem')}>
+                          <button type="button" className="templates-checklist__th-btn" onClick={() => toggleSort('ordem')}>
+                            Ordem{sortIndicator('ordem')}
+                          </button>
+                        </th>
+                        <th aria-sort={sortAria('status')}>
+                          <button
+                            type="button"
+                            className="templates-checklist__th-btn"
+                            onClick={() => toggleSort('status')}
+                          >
+                            Status{sortIndicator('status')}
+                          </button>
+                        </th>
+                        <th aria-sort={sortAria('uso')}>
+                          <button type="button" className="templates-checklist__th-btn" onClick={() => toggleSort('uso')}>
+                            Uso{sortIndicator('uso')}
+                          </button>
+                        </th>
                         <th>Ações</th>
                       </tr>
                     </thead>

@@ -30,6 +30,9 @@ interface TaskRowProps {
   onEdit?: () => void
   onMove?: () => void
   onDelete?: () => void
+  onPromoteToLibrary?: () => void
+  onPushToLibrary?: () => void
+  onUnlinkLibrary?: () => void
   initialExpanded?: boolean
   /** Quando `version` muda, força expanded para `open`. */
   expandSignal?: { version: number; open: boolean } | null
@@ -46,6 +49,9 @@ export function TaskRow({
   onEdit,
   onMove,
   onDelete,
+  onPromoteToLibrary,
+  onPushToLibrary,
+  onUnlinkLibrary,
   initialExpanded = false,
   expandSignal = null,
   readOnly = false,
@@ -131,7 +137,14 @@ export function TaskRow({
             </div>
           </button>
           {showMenu ? (
-            <TaskRowMenu onEdit={onEdit} onMove={onMove} onDelete={onDelete} />
+            <TaskRowMenu
+              onEdit={onEdit}
+              onMove={onMove}
+              onDelete={onDelete}
+              onPromoteToLibrary={onPromoteToLibrary}
+              onPushToLibrary={onPushToLibrary}
+              onUnlinkLibrary={onUnlinkLibrary}
+            />
           ) : null}
         </div>
 

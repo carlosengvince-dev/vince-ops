@@ -7,6 +7,7 @@ import {
   upsertTarefaRpcAndFetch,
   type TarefaInsertRow,
 } from './tarefaRpc'
+import { supabase } from './supabase'
 import type {
   Criticidade,
   Disciplina,
@@ -209,4 +210,28 @@ export function reorderTarefas<T extends ReorderableTarefa>(
   const [removed] = result.splice(fromIndex, 1)
   result.splice(toIndex, 0, removed)
   return result.map((t, i) => ({ ...t, ordem: i }))
+}
+
+export async function promoteTarefaToTemplate(tarefaId: string): Promise<Tarefa> {
+  const { data, error } = await supabase.rpc('promote_tarefa_to_template', {
+    p_tarefa_id: tarefaId,
+  })
+  if (error) throw new Error(error.message)
+  if (!data) throw new Error('promote_tarefa_to_template não retornou id')
+  return fetchTarefaById(tarefaId)
+}
+
+export async function pushTarefaToTemplate(tarefaId: string): Promise<void> {
+  const { error } = await supabase.rpc('push_tarefa_to_template', {
+    p_tarefa_id: tarefaId,
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function unlinkTarefaTemplate(tarefaId: string): Promise<Tarefa> {
+  const { error } = await supabase.rpc('unlink_tarefa_template', {
+    p_tarefa_id: tarefaId,
+  })
+  if (error) throw new Error(error.message)
+  return fetchTarefaById(tarefaId)
 }

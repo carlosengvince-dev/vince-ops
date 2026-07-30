@@ -32,6 +32,9 @@ interface SortableTaskListProps {
   onEdit: (tarefa: Tarefa) => void
   onMove: (tarefa: Tarefa) => void
   onDelete: (tarefa: Tarefa) => void
+  onPromoteToLibrary?: (tarefa: Tarefa) => void
+  onPushToLibrary?: (tarefa: Tarefa) => void
+  onUnlinkLibrary?: (tarefa: Tarefa) => void
   onReorder: (orderedIds: string[]) => void
   expandedTarefaId?: string | null
   expandSignal?: { version: number; open: boolean } | null
@@ -49,6 +52,9 @@ export function SortableTaskList({
   onEdit,
   onMove,
   onDelete,
+  onPromoteToLibrary,
+  onPushToLibrary,
+  onUnlinkLibrary,
   onReorder,
   expandedTarefaId = null,
   expandSignal = null,
@@ -98,6 +104,15 @@ export function SortableTaskList({
             onEdit={() => onEdit(t)}
             onMove={() => onMove(t)}
             onDelete={() => onDelete(t)}
+            onPromoteToLibrary={
+              onPromoteToLibrary && !t.template_id ? () => onPromoteToLibrary(t) : undefined
+            }
+            onPushToLibrary={
+              onPushToLibrary && t.template_id ? () => onPushToLibrary(t) : undefined
+            }
+            onUnlinkLibrary={
+              onUnlinkLibrary && t.template_id ? () => onUnlinkLibrary(t) : undefined
+            }
           />
         ))}
       </div>
@@ -123,6 +138,15 @@ export function SortableTaskList({
                 onEdit={() => onEdit(t)}
                 onMove={() => onMove(t)}
                 onDelete={() => onDelete(t)}
+                onPromoteToLibrary={
+                  onPromoteToLibrary && !t.template_id ? () => onPromoteToLibrary(t) : undefined
+                }
+                onPushToLibrary={
+                  onPushToLibrary && t.template_id ? () => onPushToLibrary(t) : undefined
+                }
+                onUnlinkLibrary={
+                  onUnlinkLibrary && t.template_id ? () => onUnlinkLibrary(t) : undefined
+                }
               />
             </SortableTaskItem>
           ))}

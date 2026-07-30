@@ -23,15 +23,19 @@ import {
   getCategoriasForPhase,
   getNextOrdemInCategoria,
   moveTarefaToPhase,
+  promoteTarefaToTemplate,
+  pushTarefaToTemplate,
   reorderTarefasOrdem,
   softDeleteTarefa,
   tarefaToFormValues,
+  unlinkTarefaTemplate,
   updateTarefaDetails,
 } from '../../lib/tarefaManagement'
 import { logActivity } from '../../lib/activityLog'
 import { formatTimerHours } from '../../lib/timerUtils'
 import { countCriticosAguardando } from '../../lib/documentosProjeto'
 import type { Disciplina, DocumentoProjeto, Fase, Papel, Tarefa, TarefaStatus } from '../../types'
+import { useToast } from '../../hooks/useToast'
 import { Button } from '../ui/Button'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import { MoveTarefaModal } from './MoveTarefaModal'
@@ -103,7 +107,7 @@ export function ChecklistPanel({
   usuarioNome,
   nome: _nome,
   clienteNome: _clienteNome,
-  status: _status,
+  status,
   disciplina,
   fase,
   faseOficial,
@@ -127,7 +131,12 @@ export function ChecklistPanel({
   onNavigateToPreInfo,
   resolvePhaseLabel = getPhaseLabel,
 }: ChecklistPanelProps) {
+  const { showToast } = useToast()
   const canManage = hasPermissao(papel, 'editar_projeto') && !readOnly
+  const canManageLibrary =
+    canManage &&
+    hasPermissao(papel, 'acessar_configuracoes') &&
+    (status === 'ativo' || status === 'em_revisao')
   const viewingOther = fase !== faseOficial
 
   const phaseTarefas = useMemo(
@@ -277,6 +286,11 @@ export function ChecklistPanel({
   const [editingTarefa, setEditingTarefa] = useState<Tarefa | null>(null)
   const [moveTarefa, setMoveTarefa] = useState<Tarefa | null>(null)
   const [deleteTarefa, setDeleteTarefa] = useState<Tarefa | null>(null)
+  const [libraryAction, setLibraryAction] = useState<{
+    kind: 'promote' | 'push' | 'unlink'
+    tarefa: Tarefa
+  } | null>(null)
+  const [libraryBusy, setLibraryBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [moveError, setMoveError] = useState<string | null>(null)
@@ -511,6 +525,55 @@ export function ChecklistPanel({
     }
   }
 
+  async function handleConfirmLibraryAction() {
+    if (!libraryAction) return
+    setLibraryBusy(true)
+    setFormError(null)
+    try {
+      const { kind, tarefa } = libraryAction
+      if (kind === 'promote') {
+        const updated = await promoteTarefaToTemplate(tarefa.id)
+        onTarefaUpdated(updated)
+        showToast('Tarefa adicionada à biblioteca')
+        void logActivity({
+          projetoId,
+          usuarioId,
+          tipo: 'projeto_status_alterado',
+          descricao: `${usuarioNome} adicionou '${tarefa.nome}' à biblioteca`,
+          metadata: { tarefa_id: tarefa.id, acao: 'tarefa_promovida_biblioteca' },
+        })
+      } else if (kind === 'push') {
+        await pushTarefaToTemplate(tarefa.id)
+        showToast('Biblioteca atualizada (projetos existentes não mudam)')
+        void logActivity({
+          projetoId,
+          usuarioId,
+          tipo: 'projeto_status_alterado',
+          descricao: `${usuarioNome} atualizou a biblioteca a partir de '${tarefa.nome}'`,
+          metadata: { tarefa_id: tarefa.id, acao: 'tarefa_push_biblioteca' },
+        })
+      } else {
+        const updated = await unlinkTarefaTemplate(tarefa.id)
+        onTarefaUpdated(updated)
+        showToast('Tarefa desvinculada — permanece só neste projeto')
+        void logActivity({
+          projetoId,
+          usuarioId,
+          tipo: 'projeto_status_alterado',
+          descricao: `${usuarioNome} desvinculou '${tarefa.nome}' da biblioteca`,
+          metadata: { tarefa_id: tarefa.id, acao: 'tarefa_unlink_biblioteca' },
+        })
+      }
+      onActivityLogged?.()
+      setLibraryAction(null)
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erro na ação da biblioteca')
+      showToast(err instanceof Error ? err.message : 'Erro na ação da biblioteca', 'error')
+    } finally {
+      setLibraryBusy(false)
+    }
+  }
+
   async function handleReorder(_sectionId: string, orderedIds: string[]) {
     const updates = orderedIds.map((id, index) => ({ id, ordem: index }))
     try {
@@ -547,6 +610,15 @@ export function ChecklistPanel({
         onEdit={openEdit}
         onMove={setMoveTarefa}
         onDelete={setDeleteTarefa}
+        onPromoteToLibrary={
+          canManageLibrary ? (t) => setLibraryAction({ kind: 'promote', tarefa: t }) : undefined
+        }
+        onPushToLibrary={
+          canManageLibrary ? (t) => setLibraryAction({ kind: 'push', tarefa: t }) : undefined
+        }
+        onUnlinkLibrary={
+          canManageLibrary ? (t) => setLibraryAction({ kind: 'unlink', tarefa: t }) : undefined
+        }
         onReorder={(ids) => void handleReorder(sectionId, ids)}
         expandedTarefaId={expandedTarefaId}
         expandSignal={tasksExpandSignal}
@@ -557,6 +629,7 @@ export function ChecklistPanel({
       canReorderTarefas,
       groupBy,
       canManage,
+      canManageLibrary,
       papel,
       taskTimerTotals,
       onStatusChange,
@@ -865,6 +938,38 @@ export function ChecklistPanel({
           setDeleteError(null)
         }}
         onConfirm={() => void handleDeleteConfirm()}
+      />
+
+      <ConfirmModal
+        isOpen={libraryAction != null}
+        title={
+          libraryAction?.kind === 'promote'
+            ? 'Adicionar à biblioteca?'
+            : libraryAction?.kind === 'push'
+              ? 'Atualizar item da biblioteca?'
+              : 'Manter só neste projeto?'
+        }
+        message={
+          libraryAction?.kind === 'promote'
+            ? `Criar (ou religar) um item na biblioteca a partir de "${libraryAction.tarefa.nome}". Projetos existentes não são alterados.`
+            : libraryAction?.kind === 'push'
+              ? `Sobrescrever o item da biblioteca com o conteúdo atual de "${libraryAction.tarefa.nome}". Projetos existentes não mudam — só novos imports usarão essa versão.`
+              : `Desvincular "${libraryAction?.tarefa.nome ?? ''}" da biblioteca. A tarefa permanece neste projeto; a biblioteca não é apagada.`
+        }
+        confirmLabel={
+          libraryAction?.kind === 'promote'
+            ? 'Adicionar'
+            : libraryAction?.kind === 'push'
+              ? 'Atualizar biblioteca'
+              : 'Desvincular'
+        }
+        cancelLabel="Cancelar"
+        variant={libraryAction?.kind === 'unlink' ? 'warning' : 'default'}
+        loading={libraryBusy}
+        onCancel={() => {
+          if (!libraryBusy) setLibraryAction(null)
+        }}
+        onConfirm={() => void handleConfirmLibraryAction()}
       />
     </div>
   )

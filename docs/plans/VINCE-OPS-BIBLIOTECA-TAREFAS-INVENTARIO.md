@@ -51,3 +51,5 @@ Promovidos/religados no ME: `ETAC - Consumo`, `VIABILIDADE - Formulário`, `VIAB
 - Novos projetos bebem do padrão ME.
 - ORO / Escala / demais existentes permanecem com seus snapshots.
 - Rótulo da aba permanece **"Templates de checklist"** até decisão explícita de rename.
+- Lista filtrável com **ordenação por coluna** (clique no cabeçalho).
+- Fase 2 no checklist do projeto: menu ⋮ → Adicionar à biblioteca / Atualizar na biblioteca / Manter só neste projeto (gestor, projeto ativo/em_revisão).

@@ -59,3 +59,9 @@
 .task-row-menu__item--danger {
   color: #dc2626 !important;
 }
+
+.task-row-menu__sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border);
+}
